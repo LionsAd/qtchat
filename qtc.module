@@ -1,0 +1,2434 @@
+<?php
+// $Id: qtc.module,v 1.1.2.15 2010/08/28 11:47:25 quiptime Exp $
+
+/**
+ * @file
+ * User 2 user facebook style chat.
+ *
+ */
+
+/**
+ * Implementation of hook_help().
+ */
+function qtc_help($path, $arg) {
+  $output = '';
+
+  switch ($path) {
+    case "admin/help#qtc":
+      $output = t('<p>QTChat</p>
+      <h3>Usage</h3>
+      <p>QTChat can not be used for anonymous user. Only logged in users with the permission <em>access qtchat</em> can chat with QTChat.</p>');
+      break;
+  }
+
+  return $output;
+}
+
+/**
+ * Implementation of hook_init().
+ */
+function qtc_init() {
+  global $user;
+
+  $settings = array();
+
+  $settings['chat_bar']               = variable_get('qtc_chat_bar', 0);
+  $settings['status_variant']         = variable_get('qtc_online_status_variant', false);
+  $settings['invisible_status_allow'] = variable_get('qtc_invisible_status_allow', 1);
+  $settings['busy_status_allow']      = variable_get('qtc_busy_status_allow', 1);
+  $settings['path']                   = drupal_get_path('module', 'qtc');
+
+  module_load_include('inc', 'qtc', 'inc/qtc.theme');
+
+  if (!empty($user->uid) && user_access('access qtchat')) {
+    $my_settings = array(
+      'baseUrl'                  => $GLOBALS['base_url'],
+      'uid'                      => $user->uid,
+      'color'                    => variable_get('qtc_color', '#F77B05'),
+      'minHeartbeat'             => variable_get('qtc_heartbeat_min', 2000),
+      'maxHeartbeat'             => variable_get('qtc_heartbeat_max', 30000),
+      'heartbeat_1'              => variable_get('qtc_heartbeat_count_1', 15),
+      'heartbeat_2'              => variable_get('qtc_heartbeat_count_2', 30),
+      'friendHeartbeat'          => variable_get('qtc_heartbeat_userdata', 120000),
+      'os_variant'               => variable_get('qtc_online_status_variant', false),
+      'friend_m'                 => variable_get('qtc_chat_friend_module', 'no'),
+      'invite_title'             => variable_get('qtc_chat_invite_title', 1),
+      'truncateChBname'          => variable_get('qtc_truncate_chat_name', 20),
+      'truncateChWname'          => variable_get('qtc_truncate_chatwindow_name', 20),
+      'clickableChWname'         => variable_get('qtc_clickable_chatwindow_name', 1),
+      'stickyFriendlist'         => variable_set('qtc_sticky_friendlist', 'unsticky'),
+      'userListHeight'           => variable_get('qtc_user_block_max_list_count', 5),
+      'friendsListHeight'        => variable_get('qtc_friends_block_max_list_count', 5),
+      'chatbarFriendsListHeight' => variable_get('qtc_chatbar_friend_list_height', 6)
+    );
+
+    if ($settings['chat_bar'] && _qtc_chatbar_vis() && _qtc_chatbar_show()) {
+      $my_settings['chatBar'] = 1;
+    }
+    $my_settings['chatBarOptions'] = true;
+//    if (!($settings['invisible_status_allow'] || $settings['busy_status_allow']) || !$settings['status_variant'] || $settings['friend_module'] == 'no') {
+//      $my_settings['chatBarOptions'] = false;
+//    }
+    
+    drupal_add_js(array('qtc' => $my_settings), "setting");
+
+    drupal_add_css($settings['path'] .'/css/qtc-chat.css');
+    drupal_add_css($settings['path'] .'/css/qtc-screen.css');
+
+//    $html_head = '<!--[if lte IE 7]><link rel="stylesheet" type="text/css" href="'. $settings[''] .'/css/qtc-screen_ie7.css"/><![endif]-->'."\n";
+//    $html_head .= '<!--[if lte IE 8]><link rel="stylesheet" type="text/css" href="'. $settings['path'] .'/css/qtc-screen_ie8.css"/><![endif]-->';
+//    drupal_set_html_head($html_head);
+    
+    if (arg(0) != 'show' && arg(1) != 'history') {
+      if (variable_get('qtc_js_file_variant', 1) == 1) {
+        drupal_add_js($settings['path'] . '/js/qtc.min.js', 'module', 'footer', false, true, true);
+      }
+      else {
+        drupal_add_js($settings['path'] . '/js/qtc.js', 'module', 'footer', false, true, true);
+      }
+
+      drupal_add_js($settings['path'] . '/js/jquery.cookie.js', 'module', 'footer');
+      drupal_add_js($settings['path'] . '/js/jquery.jqbrowser.js', 'module', 'footer');
+    }
+  }
+}
+
+/**
+ * Implementation of hook_perm().
+ */
+function qtc_perm() {
+  return array('access qtchat', 'administer qtchat');
+}
+
+/**
+ * Implementation of hook_menu().
+ */
+function qtc_menu() {
+  $params = array();
+
+  $settings['status_variant'] = variable_get('qtc_online_status_variant', false);
+  $settings['invisible_status_allow'] = variable_get('qtc_invisible_status_allow', false);
+  $settings['busy_status_allow'] = variable_get('qtc_busy_status_allow', false);
+
+  $items = array();
+
+  // Ajax function menus.
+  $items['qtc/ajax/startsession'] = array(
+    'description'      => 'Start user chat session',
+    'page callback'    => 'qtc_ajax_startsession',
+    'page arguments'   => array(2),
+    'access arguments' => array('access qtchat'),
+    'type'             => MENU_CALLBACK,
+  );
+  $items['qtc/ajax/data'] = array(
+    'description'      => 'Get user chat additional data',
+    'page callback'    => 'qtc_ajax_data',
+    'page arguments'   => array(2),
+    'access arguments' => array('access qtchat'),
+    'type'             => MENU_CALLBACK,
+  );
+  $items['qtc/ajax/heartbeat'] = array(
+    'description'      => 'Periodicly check if have new message',
+    'page callback'    => 'qtc_ajax_heartbeat',
+    'page arguments'   => array(2),
+    'access arguments' => array('access qtchat'),
+    'type'             => MENU_CALLBACK,
+  );
+  $items['qtc/ajax/heartbeat-userdata'] = array(
+    'description'      => 'Periodicly check user data',
+    'page callback'    => 'qtc_ajax_heartbeat_userdata',
+    'page arguments'   => array(2),
+    'access arguments' => array('access qtchat'),
+    'type'             => MENU_CALLBACK,
+  );
+  $items['qtc/ajax/send'] = array(
+    'description'      => 'Submit new chat message',
+    'page callback'    => 'qtc_ajax_send',
+    'page arguments'   => array(2),
+    'access arguments' => array('access qtchat'),
+    'type'             => MENU_CALLBACK,
+  );
+  $items['qtc/ajax/close'] = array(
+    'description'     => 'Close chat window',
+    'page callback'   => 'qtc_ajax_close',
+    'page arguments'  => array(2),
+    'access callback' => true,
+    'type'            => MENU_CALLBACK,
+  );
+  $items['qtc/ajax/set-online-status'] = array(
+    'description'      => 'Set your online status',
+    'page callback'    => 'qtc_ajax_set_online_status',
+    'page arguments'   => array(2),
+    'access callback'  => 'qtc_get_access',
+    'access arguments' => array(2),
+    'type'             => MENU_CALLBACK,
+  );
+  // Chat history menus.
+  $items['qtc/history/show/%'] = array(
+    'description'      => 'Show chat history',
+    'page callback'    => 'qtc_history_show',
+    'page arguments'   => array(3),
+    'access arguments' => array('access qtchat'),
+    'type'             => MENU_CALLBACK,
+  );
+  $items['qtc/history/empty'] = array(
+    'description'      => 'Empty chat history',
+    'page callback'    => 'qtc_history_empty',
+    'page arguments'   => array(0),
+    'access arguments' => array('access qtchat'),
+    'type'             => MENU_CALLBACK,
+  );
+
+  // User menus
+  if (($settings['invisible_status_allow'] || $settings['busy_status_allow']) && $settings['status_variant']) {
+    $items['user/%user/set-chat-status'] = array(
+      'title'            => 'Chat status',
+      'page callback'    => 'qtc_user_edit_chat_status',
+      'access callback'  => 'user_edit_access',
+      'access arguments' => array(1),
+      'type'             => MENU_LOCAL_TASK,
+      'weight'           => 5,
+      'load arguments'   => array('%map', '%index'),
+      'tab_parent'       => 'user/%/edit',
+    );
+  }
+  $items['my-chat-status'] = array(
+    'title'            => 'My chat status',
+    'page callback'    => 'qtc_user_edit_chat_status',
+    'access callback'  => 'qtc_get_access',
+    'access arguments' => array(0),
+    'type'             => MENU_NORMAL_ITEM,
+  );
+
+  // Admin menus.
+  $items['admin/settings/qtc'] = array(
+    'title'            => 'QTChat settings',
+    'description'      => 'QTChat settings',
+    'page callback'    => 'drupal_get_form',
+    'page arguments'   => array('qtc_admin_form_global'),
+    'access arguments' => array('administer qtchat'),
+    'file'             => 'qtc.admin.inc',
+  );
+  $items['admin/settings/qtc/global'] = array(
+    'title'            => 'Global',
+    'description'      => 'QTChat settings',
+    'page callback'    => 'drupal_get_form',
+    'page arguments'   => array('qtc_admin_form_global'),
+    'access arguments' => array('administer qtchat'),
+    'file'             => 'qtc.admin.inc',
+    'weight'           => -10,
+    'type'             => MENU_DEFAULT_LOCAL_TASK,
+  );
+  $items['admin/settings/qtc/chat'] = array(
+    'title'            => 'Chat',
+    'description'      => 'QTChat chat settings',
+    'page callback'    => 'drupal_get_form',
+    'page arguments'   => array('qtc_admin_form_chat'),
+    'access arguments' => array('administer qtchat'),
+    'file'             => 'qtc.admin.inc',
+    'weight'           => 0,
+    'type'             => MENU_LOCAL_TASK,
+  );
+  $items['admin/settings/qtc/heartbeat'] = array(
+    'title'            => 'Heartbeat',
+    'description'      => 'QTChat heartbeat settings',
+    'page callback'    => 'drupal_get_form',
+    'page arguments'   => array('qtc_admin_form_heartbeat'),
+    'access arguments' => array('administer qtchat'),
+    'file'             => 'qtc.admin.inc',
+    'weight'           => 1,
+    'type'             => MENU_LOCAL_TASK,
+  );
+  
+  return $items;
+}
+
+/**
+ * Implementation of hook_form_alter().
+ */
+function qtc_form_alter(&$form, &$form_state, $form_id) {
+  switch ($form_id) {
+    case 'qtc_admin_form_chat':
+      $form['#submit'][] = 'qtc_settings_admin_form_chat_submit';
+      break;
+    case 'block_admin_configure':
+      if (arg(4) === 'qtc' && arg(5) == '0') {
+        $form['qtchat'] = array(
+          '#type'        => 'fieldset',
+          '#title'       => t('CTChat'),
+          '#collapsible' => true,
+          '#collapsed'   => false,
+          '#weight'      => -50,
+        );
+        $form['qtchat']['info'] = array(
+          '#type'  => 'markup',
+          '#value' => t('Do not use this block if you use a friend module. Used a friend module they can use the block "QTChat friends".'),
+        );
+      }
+
+      break;
+  }
+}
+
+/**
+ * Implementation of hook_cron().
+ */
+function qtc_cron() {
+  // Delete old chat messages.
+  $old =  variable_get('qtc_old_messages', 86400);
+
+  $old_time = date('Y-m-d G:i:s', (time() - $old));
+  db_query("DELETE FROM {qtc} WHERE chat_sent < '%s'", $old_time);
+}
+
+/**
+ * Implementation of hook_user().
+ */
+function qtc_user($op, &$edit, &$account, $category = NULL) {
+  // There are scenarios that can break the use of the operator $op login in the hook_user.
+  // If this is the case, there are problems that make it impossible to use QTChat without errors.
+  // Result of this: Wrong user counts and user lists; Wrong QTChat UI display at various points.
+  // Check if you have this problem:
+  // Take a look at the database table qtc_stats after a user logged in. The logout value MUST have the value 1.
+  // A logged-in user may never have the logout value 1. If the value is 1, then there is a severe problem.
+  //
+  // If this is the case, you can use an alternative as a possible solution.
+  //
+  // Step 1
+  // Determine the path to be used:
+  // Check the output of $_REQUEST['destination'] after a user has logged in.
+  // Step 2
+  // Define the path of $_REQUEST['destination'] in the module configuration in the global area as "Login fix".
+  // This login fix path are used with the alternative solution at the following lines.
+
+  $login_fix = variable_get('qtc_login_fix', '');
+  if ($login_fix != '') {
+    if ($op == 'login' || $_REQUEST['destination'] == $login_fix)  {
+      $data = db_fetch_object(db_query('SELECT * FROM {qtc_stats} WHERE uid = %d', $account->uid));
+
+      $record = (object) NULL;
+      if (!$data) {
+        $record->uid = $account->uid;
+        $record->logout = 0;
+        $record->status = 1;
+        // Insert.
+        drupal_write_record('qtc_stats', $record);
+      }
+      else {
+        // Login again status: 1 Available, 2 Last
+        $login_again_status = variable_get('qtc_login_again_status', 1);
+        if ($login_again_status == 1) {
+          $record->status = 1;
+        }
+
+        $record->uid = $account->uid;
+        $record->logout = 0;
+        // Update.
+        drupal_write_record('qtc_stats', $record, 'uid');
+      }
+    }
+  }
+  else {
+    if ($op == 'login')  {
+      $data = db_fetch_object(db_query('SELECT * FROM {qtc_stats} WHERE uid = %d', $account->uid));
+
+      $record = (object) NULL;
+      if (!$data) {
+        $record->uid = $account->uid;
+        $record->logout = 0;
+        $record->status = 1;
+        // Insert.
+        drupal_write_record('qtc_stats', $record);
+      }
+      else {
+        // Login again status: 1 Available, 2 Last
+        $login_again_status = variable_get('qtc_login_again_status', 1);
+        if ($login_again_status == 1) {
+          $record->status = 1;
+        }
+        
+        $record->uid = $account->uid;
+        $record->logout = 0;
+        // Update.
+        drupal_write_record('qtc_stats', $record, 'uid');
+      }
+    }
+  }
+
+  switch ($op) {
+    case 'logout':
+      $record = (object) NULL;
+      $data = db_result(db_query('SELECT * FROM {qtc_stats} s WHERE s.uid = %d', $account->uid));
+      if ($data != '') {
+        $record->uid = $account->uid;
+        $record->logout = 1;
+        // Insert.
+        drupal_write_record('qtc_stats', $record, 'uid');
+      }
+      else {
+        // Login again status: 1 Available, 2 Last
+        $login_again_status = variable_get('qtc_login_again_status', 1);
+        if ($login_again_status == 1) {
+          $record->status = 1;
+        }
+
+        $record->uid = $account->uid;
+        $record->logout = 1;
+        // Update.
+        drupal_write_record('qtc_stats', $record);
+      }
+
+      break;
+
+    case 'submit':
+    case 'update':
+      // Provide chat avatar.
+      if (!empty($edit['picture'])) {
+        $account->picture = $edit['picture'];
+        qtc_avatar($account, 'update');
+      }
+      if ($edit['picture_delete'] == 1) {
+        qtc_avatar($account, 'delete');
+      }
+
+      break;
+
+    case 'delete':
+      // Delete chat avatar.
+      qtc_avatar($account, $op);
+      // Delete stored online status.
+      qtc_online_status($op, $account->uid);
+
+      break;
+
+    case 'form':
+      if ($category == 'account' && variable_get('qtc_chatbar_user_vis', 0) != 0) {
+        $data = unserialize($account->data);
+        $qtc_chatbar_user_vis = variable_get('qtc_chatbar_user_vis', 0);
+
+        if ($qtc_chatbar_user_vis == 2) {
+          $chatbar_user_vis = false;
+        }
+        $chatbar_user_vis = $data['block']['qtc_chatbar_user_vis'] ? $data['block']['qtc_chatbar_user_vis'] : $chatbar_user_vis;
+
+        $form['block']['qtc_chatbar_user_vis'] = array(
+          '#type' => 'checkbox',
+          '#title' => t('Show Chat bar'),
+          '#default_value' => $chatbar_user_vis,
+        );
+
+        return $form;
+      }
+  }
+}
+
+/**
+ * Implementation of hook_footer().
+ */
+function qtc_footer($main = 0) {
+  if (arg(1) == 'history' && arg(2) == 'show') {
+    return false;
+  }
+
+  return qtc_chat_bar();
+}
+
+/**
+ * Access callback.
+ *
+ * @param string $param
+ *   The access to check.
+ *   Possible values:
+ *   - set-online-status
+ *   - my-chat-status
+ * @param object $account
+ *   An user object.
+ * @return boolean
+ *   True or false.
+ */
+function qtc_get_access($param, $account = false) {
+  global $user;
+
+  $settings['status_variant'] = variable_get('qtc_online_status_variant', false);
+  $settings['invisible_status_allow'] = variable_get('qtc_invisible_status_allow', false);
+  $settings['busy_status_allow'] = variable_get('qtc_busy_status_allow', false);
+
+  $return = false;
+
+  if ((!$settings['invisible_status_allow'] && !$settings['busy_status_allow']) || !$settings['status_variant']) {
+    return $return;
+  }
+
+  switch ($param) {
+    case 'set-online-status':
+      // Ajax callback.
+      if (user_access('access qtchat', $user) && user_edit_access($user)) {
+        $return = true;
+      }
+      break;
+    case 'my-chat-status':
+      // Additional menu entry "My chat status".
+      if (user_access('access qtchat', $user) && user_edit_access($user)) {
+        $return = true;
+      }
+      break;
+  }
+
+  return $return;
+}
+
+/**
+ * Ajax menu callback.
+ */
+function qtc_ajax_startsession() {
+  global $user;
+
+  $realname = $user->realname ? $user->realname : $user->name;
+  $a = array('items' => array());
+
+  if (count($_SESSION['openChatBoxes'])) {
+    foreach ($_SESSION['openChatBoxes'] as $uid => $value) {
+      $history_time = $_SESSION['openChatBoxes'][$uid]['t'];
+      if (count($_SESSION['chatHistory'][$value['f']])) {
+        foreach ($_SESSION['chatHistory'][$value['f']] as $key => $element) {
+          if ($element['t'] < $history_time) {
+            continue;
+          }
+          $a['items'][$uid]['items'][$key] = $element;
+        }
+      }
+      $a['items'][$uid]['t_id'] = $uid;
+      $a['items'][$uid]['chatuser'] = $value['f'];
+      $a['items'][$uid]['name'] = $value['fn'];
+    }
+  }
+
+  asort($a['items']);
+
+  drupal_json($a);
+}
+
+/**
+ * Return various data to display the chat windows and the chat bar.
+ *
+ * @return array
+ *   The associative array contains:
+ *   - count; A counter value
+ *   - items: An associative array with user ID keys contains follwing data:
+ *     - avatar;   Rendered chat avatar. Is clickable or not.
+ *     - chatuser; The raw real name of the user to chat.
+ *     - name;     The raw user name of the user to chat.
+ *     - online;   The online status of the user to chat.
+ *     - path;     Rendered user name or real name of the user to chat. Is clickable or not.
+ *     - t_id;     Id of the user to chat.
+ */
+function qtc_ajax_data() {
+  global $user;
+
+  $params = array();
+  $settings = array();
+
+  $settings['friend_module'] = variable_get('qtc_chat_friend_module', 'no');
+
+  $params['t_id'] = $_POST['t_id'];
+  $params['c_id'] = $_POST['c_id'];
+
+  if ($params['t_id'] && $params['t_id'] != 0) {
+    $b = _qtc_ajax_data_exra($params['t_id']);
+
+    $a['avatar'] = $b['avatar'];
+    $a['online'] = $b['online'];
+    $a['path'] = $b['path'];
+
+    $a['t_id'] = $params['t_id'];
+
+  }
+  if ($params['c_id']) {
+
+    $a = array('count' => 0, 'items' => array());
+    $_SESSION['closedBoxes'] = array();
+
+    if (count($_SESSION['openChatBoxes'])) {
+      $i = 0;
+      foreach ($_SESSION['openChatBoxes'] as $uid => $value) {
+        $history_time = $_SESSION['openChatBoxes'][$uid]['t'];
+
+        $b = _qtc_ajax_data_exra($uid);
+
+        $a['items'][$uid]['avatar'] = $b['avatar'];
+        $a['items'][$uid]['online'] = $b['online'];
+        $a['items'][$uid]['path'] = $b['path'];
+
+        if ($b['online'] == 1 || $b['online'] == 4) {
+          ++$i;
+        }
+
+        if (count($_SESSION['chatHistory'][$value['f']])) {
+          foreach ($_SESSION['chatHistory'][$value['f']] as $key => $element) {
+            if ($element['t'] < $history_time) {
+              continue;
+            }
+            $a['items'][$uid]['items'][$key] = $element;
+          }
+        }
+
+        $a['items'][$uid]['t_id'] = $uid;
+        $a['items'][$uid]['chatuser'] = filter_xss($value['f']);
+        $a['items'][$uid]['name'] = $value['fn'];
+      }
+
+      $a['count'] = $i;
+    }
+    // Provides the counter value for the chat bar if
+    // - a friend module used
+    // - a session started and no chat windows open
+    else {
+      if ($settings['friend_module'] != 'no') {
+        $friend_data = _qtc_chat_friends_online();
+        $a['count'] = $friend_data['counter'];
+      }      
+    }
+
+    ksort($a['items']);
+  }
+
+  drupal_json($a);
+}
+
+/**
+ * Help function to build ajax content.
+ *
+ * @param int $uid
+ *  An user ID.
+ * 
+ * @see qtc_ajax_data()
+ */
+function _qtc_ajax_data_exra($uid) {
+    $params = array();
+    $settings = array();
+
+    $params['t_id'] = $uid;
+
+    $account = user_load(array('uid' => $params['t_id']));
+    $avatar = qtc_avatar($account);
+    $a['avatar'] = $avatar;
+
+    $settings['clickable_chatwindow_name'] = variable_get('qtc_clickable_chatwindow_name', 1);
+    $settings['friend_module'] = variable_get('qtc_chat_friend_module', 'no');
+
+    $fn_name = $account->realname ? $account->realname : $account->name;
+    $fn_name = filter_xss($fn_name);
+    $truncated_fn_name = qtc_truncate($fn_name, variable_get('qtc_truncate_chatwindow_name', 20));
+
+    // Check user online status.
+    $params['online_status'] = qtc_chat_user_online_data($params['t_id']);
+
+    if ($settings['friend_module'] == 'no') {
+      $params['online_status'] = $params['online_status']['users'][$params['t_id']]['status'];
+      if (!$params['online_status']) {
+        $params['online_status'] = 0;
+      }
+    }
+    else {
+      $params['online_status'] = $params['online_status']['friends'][$params['t_id']]['status'];
+      if (!$params['online_status']) {
+        $params['online_status'] = 0;
+      }
+    }
+    $a['online'] = $params['online_status'];
+
+    // Provides link to user account.
+    if ($params['online_status'] == 0 || $params['online_status'] == 3) {
+      $params['indicator'] = 'offline';
+    }
+    if ($params['online_status'] == 1) {
+      $params['indicator'] = 'online';
+    }
+    if ($params['online_status'] == 4) {
+      $params['indicator'] = 'busy';
+    }
+    $link_title = theme('qtc_chatbox_title', $truncated_fn_name, $params['t_id'], $params['indicator']);
+
+    if ($settings['clickable_chatwindow_name'] == 2) {
+      $a['path'] = l($link_title, 'user/'. $params['t_id'], array('html' => true, 'attributes' => array('class' => 'chatbox-show-user', 'title' => t('View !chat-user\'s profile', array('!chat-user' => $fn_name)))));
+    }
+    else {
+      $a['path'] = $link_title;
+    }
+
+    if (empty($_SESSION['openChatBoxes'][$account->uid]['t'])) {
+      $_SESSION['openChatBoxes'][$account->uid]['t'] = time();
+    }
+    $_SESSION['openChatBoxes'][$account->uid]['f'] = $account->name;
+    $_SESSION['openChatBoxes'][$account->uid]['fn'] = $fn_name;
+
+    return $a;
+}
+
+/**
+ * Heartbeat return user data if someone response to them.
+ *  - will improve if different user create different window.
+ */
+function qtc_ajax_heartbeat() {
+  global $user;
+
+  $realname = $user->realname ? $user->realname : $user->name;
+  $a = array('items' => array());
+
+  $t_id = $_GET['t_id']; //$_POST['t_id'];
+
+  $qid = db_query('SELECT *, UNIX_TIMESTAMP(c.chat_sent) AS sent FROM {qtc} c WHERE c.t_id = %d AND c.chat_recd = 0 ORDER BY c.chat_sent DESC', $user->uid);
+
+  // 0 if user own reply
+  // 1 if reply first time
+  // 2 if long idle -output without username
+  while ($chat = db_fetch_object($qid)) {
+    $messagexss = filter_xss($chat->chat_message);
+
+    // Ceck if realname $chat->frm_name available.
+    if (!$chat->frm_name) {
+      $chat->frm_name = $chat->chat_frm;
+    }
+
+    $a['items'][] = array(
+                      's' => 0,
+                      't' => _qtc_message_time('short', $chat->sent),
+                      'i' => $chat->f_id,
+                      'f' => $chat->chat_frm,
+                      'fn' => $chat->frm_name,
+                      'm' => $messagexss,
+                    );
+
+    // Save the session when they refresh the page and reoutput the message by others.
+    $_SESSION['chatHistory'][$chat->chat_frm][] = array(
+                                                    's' => 0,
+                                                    't' => $chat->sent,
+                                                    'i' => $chat->t_id,
+                                                    'f' => $chat->chat_frm,
+                                                    'fn' => $chat->frm_name,
+                                                    'm' => $messagexss,
+                                                  );
+
+    // Output "Sent at $time ago" message chat.
+    if (count($_SESSION['openChatBoxes']) > 0) {
+      foreach ($_SESSION['openChatBoxes'] as $chatbox => $time) {
+        if (!empty($_SESSION['tsChatBoxes'][$chatbox])) {
+          $now = time()-strtotime($time);
+          $string = _qtc_message_time('long', strtotime($time));
+
+          $message = t('Sent at !time', array('!time' => $string));
+          if ($now > 180) {
+            // Output message.
+            $a['items'][] = array(
+                              's' => 2,
+                              't' => _qtc_message_time('short', $chat->sent),
+                              'i' => $chat->t_id,
+                              'f' => $chatbox,
+                              'fn' => $realname,
+                              'm' => $message,
+                            );
+
+            if (!isset($_SESSION['chatHistory'][$chatbox])) {
+              $_SESSION['chatHistory'][$chatbox] = '';
+            }
+
+            $_SESSION['chatHistory'][$chatbox] = array(
+                                                   's' => 2,
+                                                   't' => $chat->sent,
+                                                   'i' => $chat->t_id,
+                                                   'f' => $chatbox,
+                                                   'fn' => $realname,
+                                                   'm' => $message,
+                                                 );
+
+            $_SESSION['tsChatBoxes'][$chatbox] = 1;
+          }
+        }
+      }
+    }
+
+    // The output has include in the session and didn't need to redisplay.
+    $record = (object) NULL;
+    $record->chat_recd = 1;
+    $record->zid = $chat->zid;
+    drupal_write_record('qtc', $record, 'zid');
+  }
+
+  drupal_json($a);
+}
+
+/**
+ * Menu callback to return user data.
+ */
+function qtc_ajax_heartbeat_userdata() {
+  $a = array('count' => 0);
+  $a = array('items' => array());
+
+  $settings['friend_module'] = variable_get('qtc_chat_friend_module', 'no');
+
+  if ($settings['friend_module'] != 'no') {
+    $friend_data = _qtc_chat_friends_online();
+
+    $a['count'] = $friend_data['counter'];
+    $a['items'] = $friend_data['friends'];
+  }
+  else {
+    $data_get = $_POST['data_get'];
+
+    if ($data_get != '') {
+      $user_data = _qtc_chat_user_status($data_get);
+
+      $a['count'] = $user_data['counter'];
+      $a['items'] = $user_data['users'];
+    }
+  }
+
+  drupal_json($a);
+}
+
+/**
+ * Submit chat message.
+ */
+function qtc_ajax_send() {
+  global $user;
+ 
+  // Ensure realname compatibility.
+  $name = qtc_get_realname($user);
+  $realname = $name['name'];
+
+  // Message escape has been done by drupal_write_record.
+  $messagesan = $_POST['message'];
+  $t_id = $_POST['t_id'];
+  $to = $_POST['to'];
+  $to_name = $_POST['to_name'];
+
+  if (!isset($_SESSION['chatHistory'][$to])) {
+    $_SESSION['chatHistory'][$to] = '';
+  }
+
+  // This will filter XSS to the session for output.
+  $messagexss = filter_xss($messagesan);
+  
+  $_SESSION['chatHistory'][$to][] = array(
+                                      's' => 1,
+                                      't' => time(),
+                                      'i' => $t_id,
+                                      'f' => $to,
+                                      'fn' => $to_name,
+                                      'm' => $messagexss,
+                                    );
+
+  // Reset idle time.
+  unset($_SESSION['tsChatBoxes'][$_POST['to']]);
+
+  $record = (object) NULL;
+
+  $record->f_id = $user->uid;
+  $record->chat_frm = $user->name;
+  $record->frm_name = $realname;
+  $record->t_id = $t_id;
+  $record->chat_to = $to;
+  $record->to_name = $to_name;
+  $record->chat_message = $messagesan;
+  $record->chat_sent = date('Y-m-d G:i:s', time());
+  $record->chat_recd = 0;
+
+  drupal_write_record('qtc', $record);
+}
+
+/**
+ * Close chat window.
+ */
+function qtc_ajax_close() {
+  global $user;
+  $time = time();
+  $time_diff = variable_get('qtc_history', 43200);
+
+  // Empty the session and the chat histories save for chatting.
+  // A user has chat histories and open chat boxes with users with whom he chatted.
+  // E.g. User foobar has no open chat box 'foobar' and no chat history 'foobar'.
+  if (isset($_SESSION['chatHistory']) && count($_SESSION['chatHistory']) >= 1) {
+    foreach ($_SESSION['chatHistory'] as $box => $box_value) {
+      if ($_SESSION['openChatBoxes'][$box]) {
+        unset($_SESSION['openChatBoxes'][$box]);
+      }
+
+      if (count($box_value) >= 1) {
+        foreach ($box_value as $key => $value) {
+          if (($time - $value['t']) > $time_diff) {
+            unset($_SESSION['chatHistory'][$box][$key]);
+          }
+        }
+      }
+
+      if (count($_SESSION['chatHistory'][$box]) == 0) {
+        unset($_SESSION['chatHistory'][$box]);
+      }
+    }
+  }
+  
+  $t_id = $_POST['t_id'];
+  unset($_SESSION['openChatBoxes'][$t_id]);
+  $_SESSION['closedBoxes'][$t_id] = $t_id;
+
+  echo "1";
+  module_invoke_all('exit');
+  exit(0);
+}
+
+/**
+ * Menu callback to set user status.
+ */
+function qtc_ajax_set_online_status() {
+  // Action id's:
+  // 1 online, 3 invisible, 4 busy
+  $action = (int)$_GET['act'];
+  $option = (int)$_GET['op'];
+  $uid = (int)$_GET['id'];;
+
+  switch ($action) {
+    case '1':
+      qtc_online_status('save', $uid, $option);
+      break;
+
+    case '3':
+      qtc_online_status('save', $uid, $option);
+      break;
+
+    case '4':
+      qtc_online_status('save', $uid, $option);
+      break;
+  }
+}
+
+/**
+ * Page callback to view a chat history.
+ */
+function qtc_history_show($id) {
+  global $user;
+
+  $box_user = user_load(array('uid' => $id));
+  $box = $box_user->name;
+
+  $popup = !empty($_GET['popup']) && user_access('access qtchat');
+  drupal_set_title(t('Chat history'));
+  $output = '';
+
+  if (isset($_SESSION['chatHistory'][$box]) && count($_SESSION['chatHistory'][$box]) >= 1) {
+    foreach ($_SESSION['chatHistory'][$box] as $key => $content) {
+      if (!is_array($content)) {
+        continue;
+      }
+      if ($_SESSION['chatHistory'][$box][$key]['i'] != $user->uid) {
+        $name = t('Me');
+      }
+      else {
+        $name = $_SESSION['chatHistory'][$box][$key]['fn'];
+      }
+      $output .= '<div class="chatbox-history">'."\n";
+      $output .= '<span class="chatbox-message-from">'. $name .': </span>';
+      $output .= '<span class="chatbox-message-content">'. $_SESSION['chatHistory'][$box][$key]['m'] .'</span> ';
+      $output .= '<span class="chatbox-message-time">('. _qtc_message_time('long', $_SESSION['chatHistory'][$box][$key]['t']) .')</span>';
+      $output .= '</div>'."\n";
+    }
+
+  }
+  else {
+    $output .= '<div class="chatbox-content">';
+    $output .= '<div class="chatbox-message">'. t('No history data available.') .'</div>';
+    $output .= '</div>';
+  }
+
+  if ($popup) {
+    $GLOBALS['devel_shutdown'] = true; // Prevent devel module from spewing.
+    module_invoke('admin_menu', 'suppress'); // Suppress admin_menu.
+    module_invoke('admin_dashboard', 'suppress'); // Suppress admin_dashboard.
+
+    $output = '<div class="chatbox-content">'. $output .'</div>';
+    print theme('qtc_history_popup', $output);
+
+    return;
+  }
+
+  return '<div class="chatbox-content">'. $output .'</div>';
+}
+
+/**
+ * Empty the chat history from an given user.
+ */
+function qtc_history_empty() {
+  if (isset($_SESSION['chatHistory']) && count($_SESSION['chatHistory']) >= 1) {
+    foreach ($_SESSION['chatHistory'] as $box => $box_value) {
+      unset($_SESSION['chatHistory'][$box]);
+    }
+  }
+}
+
+/**
+ * Build a user avatar to display on their chat window.
+ *
+ * If not configured a default picture, or picture support is disabled
+ * then a qtc module image as avatar are used.
+ *
+ * @param object $account
+ *   A user object.
+ * @param string $op
+ *   Force the avatar creation.
+ *   Optional. Allowed values:
+ *   - view; view an chat avatar; the default value is param not used
+ *   - load; view an chat avatar
+ *   - update; create or update an chat avatar
+ *   - delete; delete an chat avatar
+ * @return The avatar to use.
+ *
+ * @see qtc_user(), qtc_ajax_data().
+ * 
+ * @todo use vavatar as background image if picture support disabled.
+ */
+function qtc_avatar($account, $op = view) {
+  $path = 'sites/default/files/qtc';
+  $no_avatar = 'off';
+  $module_avatar = drupal_get_path('module', 'qtc') .'/img/no_avatar.png';
+  $picture = '';
+
+  switch ($op) {
+    case 'view':
+    case 'load':
+      if (variable_get('user_pictures', 0) == 0) {
+        $no_avatar = 'on';
+        $avatar = $module_avatar;
+      }
+      elseif (file_exists($path .'/qtc_avatar_'. $account->uid .'.png')) {
+        $avatar = $path .'/qtc_avatar_'. $account->uid .'.png';
+      }
+
+      if (!$avatar) {
+        // Make sure that can used an avatar.
+        // Users avatar.
+        if (!empty($account->picture) && file_exists($account->picture)) {
+          $avatar = $account->picture;
+          $avatar = _qtc_avatar_create($account->uid, $avatar, $path);
+        }
+        // Default avatar.
+        elseif ($no_avatar == 'off' && file_exists($path .'/qtc_avatar_default.png')) {
+          $avatar = $path .'/qtc_avatar_default.png';
+        }
+        elseif ($no_avatar == 'off' && !file_exists($path .'/qtc_avatar_default.png')) {
+          if (variable_get('user_picture_default', '')) {
+            $avatar = variable_get('user_picture_default', '');
+            // Create avatar as system default avatar.
+            $avatar = _qtc_avatar_create('default', $avatar, $path);
+          }
+          else {
+            $avatar = $module_avatar;
+            // Create avatar as module default avatar.
+            $avatar = _qtc_avatar_create('default', $avatar, $path);
+          }
+        }
+        $picture = _qtc_avatar('off', $account, $avatar);
+      }
+      else {
+        $picture = _qtc_avatar('off', $account, $avatar);
+      }
+      break;
+
+     case 'update':
+       $picture = _qtc_avatar_create($account->uid, $account->picture, $path);
+       break;
+
+     case 'delete':
+       file_delete($path.'/qtc_avatar_'. $account->uid .'.png');
+       break;
+  }
+
+  return $picture;
+}
+
+/**
+ * Menu callback to get a user direct access to edit the chat status.
+ */
+function qtc_user_edit_chat_status() {
+  global $user;
+
+  return drupal_get_form('qtc_user_edit_form', $user);
+}
+
+/**
+ * Form to edit in users account settings the online status.
+ * 
+ * @see qtc_user_edit_chat_status()
+ */
+function qtc_user_edit_form($formstate, $account) {
+  $form = array();
+
+  drupal_set_title(t('My chat status'));
+
+  $form['status'] = array(
+    '#type'        => 'fieldset',
+    '#title'       => 'Chat status',
+    '#collapsible' => false,
+    '#collapsed'   => false,
+    '#tree'        => true,
+  );
+
+  $form['status']['status'] = array(
+    '#type'        => 'select',
+    '#title'       => 'Status',
+    '#description' => t('Choose your chat status.'),
+    '#options' => _qtc_get_status_edit_options(),
+    '#default_value' => qtc_online_status('view', $account->uid),
+  );
+  $form['status']['uid'] = array(
+    '#type'  => 'value',
+    '#value' => $account->uid,
+  );
+  $form['submit'] = array(
+    '#type'  => 'submit',
+    '#value' => t('Set status'),
+  );
+
+  return $form;
+}
+
+/**
+ * Save user online status.
+ */
+function qtc_user_edit_form_submit($form, $formstate) {
+  qtc_online_status('save', $formstate['values']['status']['uid'], $formstate['values']['status']['status']);
+}
+
+/**
+ * Implementation of hook_block().
+ */
+function qtc_block($op = 'list', $delta = 0, $edit = array()) {
+  global $user;
+
+  $description = array();
+
+  $friend_module = variable_get('qtc_chat_friend_module', 'no');
+
+  if ($op == 'list') {
+    if ($friend_module == 'no') {
+      $blocks[0]['info'] = t('QTChat');
+      $blocks[0]['cache'] = BLOCK_NO_CACHE;
+    }
+    if ($friend_module != 'no') {
+      $blocks[1]['info'] = t('QTChat friends');
+      $blocks[1]['cache'] = BLOCK_NO_CACHE;
+    }
+    $blocks[2]['info'] = t('QTChat users online status');
+    $blocks[2]['cache'] = BLOCK_NO_CACHE;
+
+    return $blocks;
+  }
+
+  // Default user block.
+  else if ($op == 'configure' && $delta == 0) {
+    $form['qtc_user_block_max_list_count'] = array(
+      '#type'          => 'select',
+      '#title'         => t('User list length'),
+      '#description'   => t('Maximum number of currently online users to display.'),
+      '#options'       => drupal_map_assoc(array(5, 10, 15, 20, 25, 30, 40, 50)),
+      '#default_value' => variable_get('qtc_user_block_max_list_count', 5),
+    );
+
+    return $form;
+  }
+  else if ($op == 'save' && $delta == 0) {
+    variable_set('qtc_user_block_max_list_count', $edit['qtc_user_block_max_list_count']);
+  }
+
+  // Friends block.
+  else if ($op == 'configure' && $delta == 1) {
+    $description['friends_block_max_list_count'] = t('Maximum number of currently online users to display.') .'<br />';
+    $description['friends_block_max_list_count'] .= t('The block uses a scrollable list if the number of friends is greater than the length of the list.');
+    $form['qtc_friends_block_max_list_count'] = array(
+      '#type'          => 'select',
+      '#title'         => t('User list length'),
+      '#description'   => $description['friends_block_max_list_count'],
+      '#options'       => drupal_map_assoc(array(5, 10, 15, 20, 25, 30, 40, 50)),
+      '#default_value' => variable_get('qtc_friends_block_max_list_count', 5),
+    );
+
+    return $form;
+  }
+  else if ($op == 'save' && $delta == 1) {
+    variable_set('qtc_friends_block_max_list_count', $edit['qtc_friends_block_max_list_count']);
+  }
+
+  else if ($op == 'view') {
+    $block = array();
+
+    if ($user->uid == 0 || !user_access('access qtchat', $user)) {
+      return;
+    }
+
+    switch ($delta) {
+      case 0:
+        // The users block.
+        $settings = array();
+        $params = array();
+        
+        $settings['status_variant'] = variable_get('qtc_online_status_variant', false);
+        $settings['invisible_status_allow'] = variable_get('qtc_invisible_status_allow', 1);
+        $settings['busy_status_allow'] = variable_get('qtc_busy_status_allow', 1);
+
+        $settings['time_current'] = time();
+        $settings['time_diff'] = variable_get('qtc_online_status_time', 900);
+        
+        $settings['interval'] = time() - variable_get('qtc_online_status_time', 900);
+        $params['anonymous_count'] = sess_count($settings['interval']);
+
+        // Provide realname module compatibility.
+        if (module_exists('realname')) {
+          if (($settings['invisible_status_allow'] || $settings['busy_status_allow']) && $settings['status_variant']) {
+            $authenticated_users = db_query("SELECT DISTINCT 
+                                               u.uid,
+                                               u.name,
+                                               s.timestamp, 
+                                               rn.realname AS realname,
+                                               CASE qtc_stats.status
+                                                 WHEN 0 THEN 0
+                                                 WHEN 3 THEN 0
+                                                 WHEN 4 THEN 4
+                                                 WHEN 1 THEN (". $settings['time_current'] ." - u.access) < ". $settings['time_diff'] ."
+                                                 ELSE (". $settings['time_current'] ." - u.access) < ". $settings['time_diff'] ."
+                                               END AS online_status
+                                             FROM {users} u
+                                             INNER JOIN {sessions} s ON u.uid = s.uid
+                                             LEFT JOIN {realname} rn ON u.uid = rn.uid
+                                             LEFT JOIN {qtc_stats} qtc_stats ON qtc_stats.uid = u.uid
+                                             WHERE s.timestamp >= %d AND s.uid > 0 ORDER BY u.name ASC", $settings['interval']);
+          }
+          else {
+            $authenticated_users = db_query("SELECT DISTINCT
+                                               u.uid,
+                                               u.name,
+                                               s.timestamp,
+                                               rn.realname AS realname
+                                             FROM {users} u
+                                             INNER JOIN {sessions} s ON u.uid = s.uid
+                                             LEFT JOIN {realname} rn ON u.uid = rn.uid
+                                             WHERE s.timestamp >= %d AND s.uid > 0 ORDER BY u.name ASC", $settings['interval']);
+          }
+        }
+        // Realname module not enabled.
+        else {
+          // Respect users online/invisible/busy setting.
+          if (($settings['invisible_status_allow'] || $settings['busy_status_allow']) && $settings['status_variant']) {
+            $authenticated_users = db_query("SELECT DISTINCT
+                                               u.uid, 
+                                               u.name,
+                                               s.timestamp,
+                                               CASE qtc_stats.status
+                                                 WHEN 0 THEN 0
+                                                 WHEN 3 THEN 0
+                                                 WHEN 4 THEN 4
+                                                 WHEN 1 THEN (". $settings['time_current'] ." - u.access) < ". $settings['time_diff'] ."
+                                                 ELSE (". $settings['time_current'] ." - u.access) < ". $settings['time_diff'] ."
+                                               END AS online_status
+                                             FROM {users} u
+                                             INNER JOIN {sessions} s ON u.uid = s.uid
+                                             LEFT JOIN {qtc_stats} qtc_stats ON qtc_stats.uid = u.uid
+                                             WHERE s.timestamp >= %d AND s.uid > 0 ORDER BY u.name ASC", $settings['interval']);
+          }
+          else {
+            $authenticated_users = db_query("SELECT DISTINCT
+                                               u.uid,
+                                               u.name,
+                                               s.timestamp
+                                             FROM {users} u
+                                             INNER JOIN {sessions} s ON u.uid = s.uid
+                                             WHERE s.timestamp >= %d AND s.uid > 0 ORDER BY u.name ASC", $settings['interval']);
+          }
+        }
+
+        $params['authenticated_count'] = 0;
+        $params['max_users'] = variable_get('qtc_user_block_max_list_count', 5);
+        $items = array();
+
+        while ($account = db_fetch_object($authenticated_users)) {
+          if (($settings['invisible_status_allow'] || $settings['busy_status_allow']) && $settings['status_variant']) {
+            if ($params['max_users'] > 0 && ($account->online_status == 1 || $account->online_status == 4)) {
+              $items[] = $account;
+              //--$params['max_users'];
+              ++$params['authenticated_count'];
+            }
+          }
+          else {
+            if ($params['max_users'] > 0) {
+              $items[] = $account;
+              //--$params['max_users'];
+            }
+            ++$params['authenticated_count'];
+          }
+        }
+
+        // Format the output with proper grammar.
+        if ($params['anonymous_count'] == 1 || $params['authenticated_count'] == 1) {
+          $output = t('Currently %members online.', array('%members' => format_plural($params['authenticated_count'], '1 user', '@count users')));
+        }
+        else {
+          $output = t('Currently %members online.', array('%members' => format_plural($params['authenticated_count'], '1 user', '@count users')));
+        }
+
+        $params['max_users'] = variable_get('qtc_user_block_max_list_count', 5);
+
+        // Provides height value for scrollable list functionality; @see qtc_users_block()
+        if (count($items) <= $params['max_users']) {
+          $params['block_list_height'] = 'auto';
+        }
+        if (count($items) > $params['max_users']) {
+          $params['block_list_height'] = $params['max_users'];
+        }
+
+        // Different display of user list.
+        if ($params['authenticated_count'] && $params['max_users']) {
+          // If login, show chat block, else, show listing profile only.
+          if (!empty($user->uid)) {
+            $output .= qtc_users_block($items, $params, false);
+          }
+          else {
+            $output .= theme('user_list', $items, false);
+          }
+        }
+
+        $block['subject'] = t('QTChat');
+        $block['content'] = $output;
+        
+        break;
+
+      case '1':
+        // The friends block.
+        if ($friend_module == 'no') {
+          return;
+        }
+
+        $params['max_users'] = variable_get('qtc_friends_block_max_list_count', 5);
+        $friends = _qtc_chat_friends_online();
+
+        $items = array();
+        foreach ($friends['friends'] as $friend_uid => $friend) {
+          if ($friend['status'] == 1 || $friend['status'] == 4) {
+            $friend['uid'] = $friend_uid;
+            $items[] = $friend;
+          }
+        }
+
+        // Provides height value for scrollable list functionality; @see qtc_friends_block()
+        if (count($items) <= $params['max_users']) {
+          $params['block_list_height'] = 'auto';
+        }
+        if (count($items) > $params['max_users']) {
+          $params['block_list_height'] = $params['max_users'];
+        }
+
+        $block['subject'] = t('QTChat friends');
+        $block['content'] = qtc_friends_block($items, $params, false);
+
+        break;
+
+      case '2':
+        // The toggler block.
+        $block['subject'] = t('QTChat online status');
+        $block['content'] = qtc_toggler_block();
+
+        break;
+    }
+  }
+
+  return $block;
+}
+
+/**
+ * Check if an user online or offline.
+ *
+ *   This is the main function, as real check, to get the user online status.
+ *   The check respects an stored offline status of the user if
+ *     - in the setting "Online status variant" the
+ *       option "Yes, accept users status" enabled.
+ *
+ * @param int $uid
+ *   An user ID.
+ * @return int
+ *   1 User is online
+ *   0 User is offline
+ *
+ * @see qtc_chat_link()
+ */
+function qtc_chat_user_status($uid) {
+  $settings['status_variant'] = variable_get('qtc_online_status_variant', false);
+  $settings['time'] = variable_get('qtc_online_status_time', 900);
+
+  // Users can set your online status.
+  // The option "Yes, accept users status" is enabled.
+  if ($settings['status_variant']) {
+    $data = db_fetch_object(db_query("SELECT u.access AS access, s.status AS status, s.logout AS logout FROM {users} u LEFT JOIN {qtc_stats} s ON s.uid = u.uid WHERE u.uid = %d", $uid));
+
+    // User has stored his status.
+    if (isset($data->status)) {
+      if ($data->status == 0 || $data->logout == 1) {
+        $online = false;
+      }
+      // Make the online status check with the last activity-examination.
+      if ($data->status == 1 && $data->logout != 1) {
+        $online = (round((time() - $data->access)) < $settings['status_time'] ? true : false);
+      }
+    }
+    // User has no data in the DB.
+    // Make the online status check with the last activity-examination.
+    else {
+      $online = (round((time() - $data->access)) < $settings['status_time'] ? true : false);
+    }
+  }
+  // Users can not using the online/offline functionality.
+  // The setting is not available or the option "Yes, accept users status" is not enabled.
+  else {
+    $data = db_fetch_object(db_query("SELECT users.access AS access FROM {users} users WHERE users.uid = %d", $uid));
+    $online = (round((time() - $data->access)) < $settings['status_time'] ? true : false);
+  }
+
+  return $online;
+}
+
+/**
+ * User online status.
+ *
+ * @param string $op
+ *   Possible values:
+ *   - view,
+ *   - save,
+ *   - delete
+ * @param int $uid
+ *   An user ID
+ * @param int $status
+ *   The status to be set.
+ * @return
+ *   Used operator view:
+ *   true or false
+ *
+ * @see qtc_user(), qtc_ajax_set_chat_status(), qtc_user_edit_form, qtc_user_edit_form_submit()
+ */
+function qtc_online_status($op, $uid, $status = NULL) {
+  switch ($op) {
+    case 'view':
+      $settings = array();
+      
+      $settings['status_variant'] = variable_get('qtc_online_status_variant', false);
+      $settings['invisible_status_allow'] = variable_get('qtc_invisible_status_allow', 1);
+      $settings['busy_status_allow'] = variable_get('qtc_busy_status_allow', 1);
+
+      $settings['time_current'] = time();
+      $settings['time_diff'] = variable_get('qtc_online_status_time', 900);
+
+      $status = 1;
+
+      //
+      if (($settings['invisible_status_allow'] || $settings['busy_status_allow']) || $settings['status_variant'] == 1) {
+        $status = 1;
+
+        $data = db_fetch_object(db_query('SELECT users.access AS access, users.uid AS uid, qtc_stats.status AS status, qtc_stats.logout AS logout
+                                           FROM {users} users
+                                           LEFT JOIN {qtc_stats} qtc_stats ON qtc_stats.uid = users.uid
+                                           WHERE users.uid = %d', $uid)
+                                         );
+
+        // Logout status; 1 logged out, 0 logged in.
+        if ($data->logout == 1) {
+          $status = 0;
+        }
+        if ($data->status == 1 && $data->logout == 0) {
+          $status = $data->status;
+        }
+        if ($data->status == 0 && $data->logout == 0) {
+          $status = $data->status;
+        }
+        if ($data->status == 3 && $data->logout == 0) {
+          $status = $data->status;
+        }
+        if ($data->status == 4 && $data->logout == 0) {
+          $status = $data->status;
+        }
+
+        // This check is probably unfavorable.
+        // Added to detect when a user leaves the site without logging out - he has closed the browser or browser tab.
+        if (($status == 1 || $status == 3 || $status == 4) && ($settings['time_current'] - $settings['time_diff']) > $data->access) {
+          $status = 0;
+        }
+        // User not exist with an entry.
+        if (!$data->status) {
+          if (($settings['time_current'] - $data->access) < $settings['time_diff']) {
+            $status = 1;
+          }
+          else {
+            $status = 0;
+          }
+        }
+      }
+
+      if ((!$settings['invisible_status_allow'] && !$settings['busy_status_allow']) || !$settings['status_variant']) {
+        $sql = "SELECT users.uid AS uid, users.access AS access, (". $settings['time_current'] ." - users.access) < ". $settings['time_diff'] ." AS users_online_status FROM {users} users WHERE users.uid = %d";
+
+        $query = db_query($sql, $uid);
+        $data = db_fetch_object($query);
+
+        $status = $data->users_online_status;
+      }
+
+      return $status;
+
+    case 'save':
+      if ($status == NULL) {
+        return;
+      }
+
+      $record = (object) NULL;
+      $record->uid = $uid;
+      $record->status = $status;
+
+      $data = db_result(db_query('SELECT qtc_stats.status AS status FROM {qtc_stats} qtc_stats WHERE qtc_stats.uid = %d', $uid));
+
+      if ($data != '') {
+        drupal_write_record('qtc_stats', $record, 'uid');
+      }
+      else {
+        drupal_write_record('qtc_stats', $record);
+      }
+      break;
+
+    case 'delete':
+      db_query("DELETE FROM {qtc_stats} WHERE uid = %s", $uid);
+      break;
+  }
+}
+
+/**
+ * Provides data of online users.
+ *
+ *   Returns
+ *   Scenario 1 - Friend module are used.
+ *   - the counter result of online friends
+ *   - the list of friends
+ *   Scenario 1 - Friend module are not used.
+ *   - the counter result of online user
+ *   - the list of users
+ *
+ *   Scenario 1
+ *   See qtc_friend_modules() for supported modules.
+ *
+ * @param string $users_data
+ *   Optional. A single user ID or a comma separated list of user ID's.
+ * @return array
+ *   Scenario 1 - friend module feature enabled:
+ *   The associative array contains two keys.
+ *   - counter | An counter value.
+ *   - friends | An associative array contains user ID with user name and status value.
+ *   Scenario 2 - friend module feature disabled:
+ *   The associative array contains two keys.
+ *   - counter | An counter value.
+ *   - users | An associative array contains user ID with user name, realname and status value.
+ *
+ * @see _qtc_chat_friends_online(), _qtc_chat_user_status(), _qtc_ajax_data_exra
+ */
+function qtc_chat_user_online_data($users_data = false) {
+  global $user;
+
+  // Get settings.
+  $settings['friend_module'] = variable_get('qtc_chat_friend_module', 'no');
+
+  $settings['status_variant'] = variable_get('qtc_online_status_variant', false);
+  $settings['invisible_status_allow'] = variable_get('qtc_invisible_status_allow', 1);
+  $settings['busy_status_allow'] = variable_get('qtc_busy_status_allow', 1);
+
+  $settings['access_qtchat_rules'] = qtc_access_qtchat_rules();
+
+  $settings['time_current'] = time();
+  $settings['time_diff'] = variable_get('qtc_online_status_time', 900);
+
+  // Realname compatibility.
+  $settings['realname_exist'] = false;
+  $settings['sql_realname_select'] = '';
+  $settings['sql_realname_select_join'] = '';
+
+  if (module_exists('realname')) {
+    $settings['sql_realname_select'] = 'rn.realname AS realname,';
+    $settings['sql_realname_select_join'] = 'LEFT JOIN {realname} rn ON rn.uid = users.uid';
+    $settings['realname_exist'] = true;
+  }
+
+  switch ($settings['friend_module']) {
+    case 'flag_friend':
+      // Currently exist limitations with Flag Friend.
+      // It can be used only one user flag type.
+      // Flag Friend version 2: The flag type must have the name friend.
+
+      $user_data = array('counter' => 0, 'friends' => array());
+      $settings['flags_flag_friend'] = variable_get('qtc_chat_friend_module_flag_friend', array());
+      
+      if (!count($settings['flags_flag_friend'])) {
+        if (arg(0) != 'admin') {
+          $message = t('Chat settings: Friend modules: No %flags enabled! Administer the !module to.');
+          watchdog('qtc', $message, array('%flags' => t('Friend flags'), '!module' => l(t('QTC module'), 'admin/settings/qtc')), WATCHDOG_ERROR);
+        }
+        return $user_data;
+      }
+
+      if (!$settings['access_qtchat_rules']) {
+        return $user_data;
+      }
+
+      // Respect users online/invisible/busy setting.
+      if (($settings['invisible_status_allow'] || $settings['busy_status_allow']) && $settings['status_variant']) {
+        // Map status 3 to 0.
+        $sql = "SELECT
+                  users.uid AS uid,
+                  users.name AS name,".
+                  $settings['sql_realname_select'] ."
+                  CASE qtc_stats.status
+                    WHEN 0 THEN 0
+                    WHEN 3 THEN 0
+                    WHEN 4 THEN 4
+                    WHEN 1 THEN (". $settings['time_current'] ." - users.access) < ". $settings['time_diff'] ."
+                    ELSE (". $settings['time_current'] ." - users.access) < ". $settings['time_diff'] ."
+                  END AS online_status,
+                  CASE qtc_stats.logout
+                    WHEN 1 THEN 1
+                    WHEN 0 THEN (". $settings['time_current'] ." - users.access) > ". $settings['time_diff'] ."
+                    ELSE (". $settings['time_current'] ." - users.access) > ". $settings['time_diff'] ."
+                  END AS qtc_stats_logout
+                FROM {users} users
+                LEFT JOIN {flag_friend} flag_friend ON users.uid = flag_friend.uid
+                LEFT JOIN {qtc_stats} qtc_stats ON qtc_stats.uid = users.uid ".
+                $settings['sql_realname_select_join'] ."
+                WHERE (
+                  (users.uid <> 0)) AND
+                  ((users.uid IN (SELECT f.friend_uid FROM {flag_friend} f WHERE f.uid = %d)) OR (users.uid IN (SELECT f.uid FROM {flag_friend} f WHERE f.friend_uid = %d))
+                )";
+      }
+      else {
+        $sql = "SELECT
+                  users.uid AS uid,
+                  users.name AS name,".
+                  $settings['sql_realname_select']."
+                  (". $settings['time_current'] ." - users.access) < ". $settings['time_diff'] ." AS online_status
+                FROM {users} users
+                LEFT JOIN {flag_friend} flag_friend ON users.uid = flag_friend.uid ".
+                $settings['sql_realname_select_join'] ."
+                WHERE (
+                  ((". $settings['time_current'] ." - users.access) < ". $settings['time_diff'] .") AND
+                  (users.uid <> 0)) AND
+                  ((users.uid IN (SELECT f.friend_uid FROM {flag_friend} f WHERE f.uid = %d)) OR (users.uid IN (SELECT f.uid FROM {flag_friend} f WHERE f.friend_uid = %d))
+                )";
+      }
+      $query = db_query($sql, $user->uid, $user->uid);
+
+      $user_data = _qtc_chat_user_online_data($query, $settings);
+      break;
+
+    case 'user_relationships_api':
+      $user_data = array('counter' => 0, 'friends' => array());
+      $settings['flags_user_relationships'] = variable_get('qtc_chat_friend_module_user_relationships', array());
+
+      if (!count($settings['flags_user_relationships'])) {
+        if (arg(0) != 'admin') {
+          $message = t('Chat settings: Friend modules: No %relationships enabled! Administer the !module.');
+          watchdog('qtc', $message, array('%relationships' => t('Relationships'), '!module' => l(t('QTC module'), 'admin/settings/qtc')), WATCHDOG_ERROR);
+        }
+        return $user_data;
+      }
+
+      if (!$settings['access_qtchat_rules']) {
+        return $user_data;
+      }
+
+      // Respect users online/invisible/busy setting.
+      if (($settings['invisible_status_allow'] || $settings['busy_status_allow']) && $settings['status_variant']) {
+        // Map status 3 to 0.
+        $sql = "SELECT
+                  users.uid AS uid,
+                  users.name AS name,".
+                  $settings['sql_realname_select'] ."
+                  CASE qtc_stats.status
+                    WHEN 0 THEN 0
+                    WHEN 3 THEN 0
+                    WHEN 4 THEN 4
+                    WHEN 1 THEN (". $settings['time_current'] ." - users.access) < ". $settings['time_diff'] ."
+                    ELSE (". $settings['time_current'] ." - users.access) < ". $settings['time_diff'] ."
+                  END AS online_status,
+                  CASE qtc_stats.logout
+                    WHEN 1 THEN 1
+                    WHEN 0 THEN (". $settings['time_current'] ." - users.access) > ". $settings['time_diff'] ."
+                    ELSE (". $settings['time_current'] ." - users.access) > ". $settings['time_diff'] ."
+                  END AS qtc_stats_logout
+                FROM {users} users
+                LEFT JOIN {user_relationships} user_relationships ON users.uid = user_relationships.requestee_id
+                LEFT JOIN {qtc_stats} qtc_stats ON qtc_stats.uid = users.uid ".
+                $settings['sql_realname_select_join'] ."
+                WHERE (
+                  (users.uid <> 0)) AND
+                  ((users.uid IN (SELECT ur.requester_id FROM {user_relationships} ur WHERE ur.requestee_id = %d AND ur.approved = 1 AND ur.rtid IN (". implode(',', $settings['flags_user_relationships']) ."))) OR
+                  (users.uid IN (SELECT ur.requestee_id FROM {user_relationships} ur WHERE ur.requester_id = %d AND ur.approved = 1  AND ur.rtid IN (". implode(',', $settings['flags_user_relationships']) .")))
+                )";
+
+      }
+      else {
+        $sql = "SELECT
+                  users.uid AS uid,
+                  users.name AS name,".
+                  $settings['sql_realname_select']."
+                  (". $settings['time_current'] ." - users.access) < ". $settings['time_diff'] ." AS online_status
+                FROM {users} users
+                LEFT JOIN {user_relationships} user_relationships ON users.uid = user_relationships.requestee_id ".
+                $settings['sql_realname_select_join']."
+                WHERE (
+                  ((". $settings['time_current'] ." - users.access) < ". $settings['time_diff'] .") AND
+                  (users.uid <> 0)) AND
+                  ((users.uid IN (SELECT ur.requester_id FROM {user_relationships} ur WHERE ur.requestee_id = %d AND ur.approved = 1  AND ur.rtid IN (". implode(',', $settings['flags_user_relationships']) ."))) OR
+                  (users.uid IN (SELECT ur.requestee_id FROM {user_relationships} ur WHERE ur.requester_id = %d AND ur.approved = 1  AND ur.rtid IN (". implode(',', $settings['flags_user_relationships']) .")))
+                )";
+      }
+      $query = db_query($sql, $user->uid, $user->uid);
+
+      $user_data = _qtc_chat_user_online_data($query, $settings);
+      break;
+
+    case 'no':
+      $user_data = array('counter' => 0, 'users' => array());
+
+      if (!$settings['access_qtchat_rules']) {
+        return $user_data;
+      }
+      
+      // Respect users online/invisible/busy setting.
+      if (($settings['invisible_status_allow'] || $settings['busy_status_allow']) && $settings['status_variant']) {
+        // Map status 3 to 0.
+        $sql = "SELECT
+                  users.uid AS uid,
+                  users.name AS name,".
+                  $settings['sql_realname_select'] ."
+                  CASE qtc_stats.status
+                    WHEN 0 THEN 0
+                    WHEN 3 THEN 0
+                    WHEN 4 THEN 4
+                    WHEN 1 THEN (". $settings['time_current'] ." - users.access) < ". $settings['time_diff'] ."
+                    ELSE (". $settings['time_current'] ." - users.access) < ". $settings['time_diff'] ."
+                  END AS online_status,
+                  CASE qtc_stats.logout
+                    WHEN 1 THEN 1
+                    WHEN 0 THEN (". $settings['time_current'] ." - users.access) > ". $settings['time_diff'] ."
+                    ELSE (". $settings['time_current'] ." - users.access) > ". $settings['time_diff'] ."
+                  END AS qtc_stats_logout
+                FROM {users} users
+                LEFT JOIN {qtc_stats} qtc_stats ON qtc_stats.uid = users.uid ".
+                $settings['sql_realname_select_join'] ."
+                WHERE (
+                  users.uid <> 0 AND
+                  users.uid IN (". $users_data .")
+                )";
+      }
+      else {
+        $sql = "SELECT
+                  users.uid AS uid,
+                  users.name AS name,".
+                  $settings['sql_realname_select']."
+                  (". $settings['time_current'] ." - users.access) < ". $settings['time_diff'] ." AS online_status
+                FROM {users} users ".
+                $settings['sql_realname_select_join']."
+                WHERE (
+                  (". $settings['time_current'] ." - users.access) < ". $settings['time_diff'] ." AND
+                  users.uid <> 0 AND
+                  users.uid IN (". $users_data .")
+                )";
+      }
+      $query = db_query($sql);
+
+      $users = array();
+      $i = array();
+      while ($data = db_fetch_object($query)) {
+        $params['realname'] = $settings['realname_exist'] ? $data->realname : $data->name;
+
+        $curr_user = user_load(array('uid' => $data->uid));
+        // Determine that have the user an role with the permisssion "access qtchat".
+        $check = array_intersect($settings['access_qtchat_rules'], array_values($curr_user->roles));
+        if (empty($check)) {
+          continue;
+        }
+
+        // Status: Accept user status: check status values and logout value.
+        if (($settings['invisible_status_allow'] || $settings['busy_status_allow']) && $data->qtc_stats_logout != 1) {
+          if ($data->qtc_stats_logout == 1) {
+            $users[$data->uid] = array('name' => $data->name, 'realname' => $params['realname'], 'status' => 0);
+          }
+          else {
+            $users[$data->uid] = array('name' => $data->name, 'realname' => $params['realname'], 'status' => $data->online_status);
+          }
+        }
+
+        // Status: Use drupals default: Use status value
+        if (!$settings['invisible_status_allow'] && !$settings['busy_status_allow']) {
+          $users[$data->uid] = array('name' => $data->name, 'realname' => $params['realname'], 'status' => $data->online_status);
+        }
+
+        // Provides the user counter.
+        if ($data->online_status == 1 || $data->online_status == 4) {
+          $i[$data->uid] = '';
+        }
+      }
+
+      $user_data['counter'] = count($i) ;
+      $user_data['users'] = array();
+      $user_data['users'] = $users;
+      break;
+  }
+
+  return $user_data;
+}
+
+/**
+ * Determine the roles that have the permisssion "access qtchat".
+ *
+ * @return mixed
+ *   - An associative array contains the roles that have the permission "access qtchat".
+ *     role ID | name of the role
+ *   - FALSE
+ *     No roles have the permission "access qtchat".
+ */
+function qtc_access_qtchat_rules() {
+  $query = db_query("SELECT p.rid AS rid, p.perm AS perm, r.name AS role FROM {permission} p LEFT JOIN {role} r ON r.rid = p.rid");
+
+  $access_qtchat_rules = array();
+  while ($data = db_fetch_object($query)) {
+    if (preg_match("/access qtchat/", $data->perm)) {
+      $access_qtchat_rules[$data->rid] = $data->role;
+    }
+  }
+
+  if (count($access_qtchat_rules) >= 1) {
+    return $access_qtchat_rules;
+  }
+  else {
+    return false;
+  }
+}
+
+/**
+ * Checks to see if the chat bar should show up on the current page.
+ *
+ * @return
+ *   True if the chat bar should show up; false otherwise.
+ */
+function _qtc_chatbar_vis() {
+  if (variable_get('qtc_chatbar_page_vis', 0) < 2) {
+    $path = drupal_get_path_alias($_GET['q']);
+    //Compare with the internal and path alias (if any).
+    $page_match = drupal_match_path($path, variable_get('qtc_chatbar_vis_list', ''));
+
+    if ($path != $_GET['q'] && !$page_match) {
+      $page_match = drupal_match_path($_GET['q'], variable_get('qtc_chatbar_vis_list', ''));
+    }
+    if (variable_get('qtc_chatbar_page_vis', 0) == 1 && $page_match) {
+      return true;
+    }
+    elseif (variable_get('qtc_chatbar_page_vis', 0) == 0 && !$page_match) {
+      return true;
+    }
+    return false;
+  }
+  else {
+    return drupal_eval(variable_get('qtc_chatbar_vis_list', ''));
+  }
+}
+
+/**
+ * Checks user access, user authentication, and visibility settings to determine
+ * whether to show the chat bar.
+ *
+ * @param $skip_vis
+ *   If true, skips the visibility check.
+ * @return
+ *   True if the chat bar should be shown; false otherwise.
+ */
+function _qtc_chatbar_show($skip_vis = false) {
+  global $user;
+
+  if (!user_access('access qtchat')) {
+    return false;
+  }
+  // Chat functionality is only available when user login.
+  if (!$user->uid) {
+    return false;
+  }
+  if (variable_get('qtc_chatbar_user_vis', 0) == 0) {
+    return true;
+  }
+
+  $chatbar_user_vis = 1;
+  // Use the user's visibility setting, if necessary.
+  $data = unserialize($user->data);
+  if ($data['block']['qtc_chatbar_user_vis'] == 0 || !$data['block']['qtc_chatbar_user_vis']) {
+    $chatbar_user_vis = 0;
+  }
+
+  if ($chatbar_user_vis == 0) {
+    return false;
+  }
+  else {
+    return true;
+  }
+
+  if (!$skip_vis) {
+    return _qtc_chatbar_vis();
+  }
+
+  return true;
+}
+
+/**
+ * Help function to get the status options.
+ *
+ * @see qtc_user_edit_form()
+ */
+function _qtc_get_status_edit_options() {
+  $options = array(1 => t('I\'m available'));
+
+  $settings['invisible_status_allow'] = variable_get('qtc_invisible_status_allow', 1);
+  $settings['busy_status_allow'] = variable_get('qtc_busy_status_allow', 1);
+
+  if ($settings['invisible_status_allow'] && $settings['busy_status_allow']) {
+    $options[3] = t('I\'m invisible');
+    $options[4] = t('I\'m busy');
+  }
+  if ($settings['invisible_status_allow'] && !$settings['busy_status_allow']) {
+    $options[3] = t('I\'m invisible');
+  }
+  if (!$settings['invisible_status_allow'] && $settings['busy_status_allow']) {
+    $options[4] = t('I\'m busy');
+  }
+
+  return $options;
+}
+
+/**
+ * Help function to create the chat avatar.
+ *
+ * @param string $op
+ *   Possible values: off, on
+ * @param object $account
+ *   An user object.
+ * @param string $picture
+ *   An path to the user picture.
+ *   For example: sites/default/files/qtc/qtc_avatar_default.png
+ * @return string
+ *   The rendered avatar. With or without link to user account.
+ *
+ * @see qtc_avatar()
+ */
+function _qtc_avatar($op, $account, $picture) {
+  $output = '';
+
+  switch ($op) {
+    case 'off':
+      $name = $account->realname ? $account->realname : $account->name;
+      $alt = t("@user's profile", array('@user' => $name ? $name : variable_get('anonymous', t('Anonymous'))));
+      $title = '';
+      if (variable_get('qtc_clickabe_chatwindow_avatar', 2) == 2) {
+        $title = $alt;
+      }
+
+      $output = theme('image', $picture, $alt, $title, '', false);
+
+      if (!empty($account->uid) && user_access('access user profiles') && variable_get('qtc_clickabe_chatwindow_avatar', 2) == 2) {
+        $attributes = array('attributes' => array('title' => t('View user profile.')), 'html' => true);
+        $output = l($output, "user/$account->uid", $attributes);
+      }
+      break;
+
+    case 'on':
+      $output = theme('image', $picture, '', '', '', false);
+
+      break;
+  }
+
+  return $output;
+}
+
+/**
+ * Help function to create the chat avatar.
+ *
+ * @param bool $uid
+ *   A user ID.
+ * @param $picture
+ *   The source path of the picture picture to use to create the avatar.
+ * @param string $path
+ *   The destination path to create the avatar.
+ * @return The path to the chat avatar.
+ *
+ * @see qtc_avatar()
+ */
+function _qtc_avatar_create($uid, $picture, $path) {
+  file_check_directory($path, 755);
+  file_delete($path .'/qtc_avatar_'. $uid .'.png');
+
+  image_resize($picture, $path .'/qtc_avatar_'. $uid .'.png', 30, 30);
+  $image = $path .'/qtc_avatar_'. $uid .'.png';
+
+  return $image;
+}
+
+/**
+ * Help function for evaluation of user data.
+ *
+ * @param object $query
+ *   A database query result.
+ * @param array $settings
+ *   The setting values.
+ * @return array
+ *  An associative array contains the user data.
+ *
+ * @see qtc_chat_user_online_data()
+ */
+function _qtc_chat_user_online_data($query, $settings) {
+  $params = array();
+
+  $friends = array();
+  while ($data = db_fetch_object($query)) {
+    $params['realname'] = $settings['realname_exist'] ? $data->realname : $data->name;
+
+    $curr_user = user_load(array('uid' => $data->uid));
+    // Determine that have the user an role with the permisssion "access qtchat".
+    $check = array_intersect($settings['access_qtchat_rules'], array_values($curr_user->roles));
+    if (empty($check)) {
+      continue;
+    }
+
+    // Status: Accept user status: check status values and logout value
+    if ($settings['status_variant']
+       && ($settings['invisible_status_allow'] || $settings['busy_status_allow'])
+       && $data->qtc_stats_logout != 1
+    ) {
+      if ($data->online_status == 1 || $data->online_status == 4) {
+        $friends[$data->uid] = array('name' => $data->name, 'realname' => $params['realname'], 'status' => $data->online_status);
+      }
+    }
+
+    // Status: Accept user status: check status values and logout value
+    if ($settings['status_variant']
+       && !$settings['invisible_status_allow'] && !$settings['busy_status_allow']
+       && $data->qtc_stats_logout != 1
+    ) {
+      $friends[$data->uid] = array('name' => $data->name, 'realname' => $params['realname'], 'status' => $data->online_status);
+    }
+    
+    // Status: Use drupals default: Use status value
+    if (!$settings['status_variant']
+       && ($settings['invisible_status_allow'] || $settings['busy_status_allow'])
+    ) {
+      if ($data->online_status == 1 || $data->online_status == 4) {
+        $friends[$data->uid] = array('name' => $data->name, 'realname' => $params['realname'], 'status' => $data->online_status);
+      }
+    }
+  }
+
+  $user_data['counter'] = count($friends);
+  $user_data['friends'] = array();
+  $user_data['friends'] = $friends;
+
+  return $user_data;
+}
+
+/**
+ * Provides data of online friends.
+ *
+ *   See qtc_friend_modules() for supported modules.
+ *
+ * @return array
+ *   An associative array keyed with two keys:
+ *   counter | The counter value of online friends.
+ *   friends | An associative array contains the friends data.
+ *
+ * @see qtc_ajax_heartbeat_userdata()
+ */
+function _qtc_chat_friends_online() {
+  $friends = array();
+  $friend_data = array('counter' => 0, 'friends' => $friends);
+
+  $data = qtc_chat_user_online_data();
+  
+  foreach ($data['friends'] as $uid => $value) {
+    // $value contains name, realname, status.
+    $friends[$uid] = $value; 
+  }
+  // Makes it easier to find a user with long scroll lists.
+  asort($friends);
+
+  $friend_data = array('counter' => $data['counter'], 'friends' => $friends);
+
+  return $friend_data;
+}
+
+/**
+ * Provides the online user data if no friend module enabled.
+ *
+ *   This means the users from the opened chat windows.
+ *
+ * @param string $user_string
+ *   Format: Comma separated string of user ID's.
+ *   The users to get data.
+ * @return array
+ *   An associative array.
+ *   counter | The ucer counter.
+ *   users | An associative array contains the user data.
+ *
+ * @see qtc_ajax_heartbeat_userdata()
+ */
+function _qtc_chat_user_status($user_string) {
+  $users = array();
+  $user_data = array('counter' => 0, 'users' => $users);
+
+  $data = qtc_chat_user_online_data($user_string);
+
+  foreach ($data['users'] as $uid => $value) {
+    $users[$uid] = $value;
+  }
+  // Makes it easier to find a user in long scroll lists.
+  asort($users);
+
+  $user_data = array('counter' => $data['counter'], 'users' => $users);
+
+  return $user_data;
+}
+
+/**
+ * Format an link to chat with an given user.
+ * 
+ *   No chat link returned:
+ *   - If the current user the same as the user to chat.
+ *     A user can not chat with yourself.
+ *   - Has current user no permission "access qtchat".
+ *
+ * @param int $uid
+ *   The ID of the user, invite to chat.
+ * @param string $name
+ *   Optional; The user name, invite to chat.
+ * @param string $realname
+ *   Optional; The realname of user, invite to chat.
+ * @param string $link_text
+ *   Optional; The text to be enclosed with the anchor tag.
+ *   If no text used as parameter are used the "Invite title" of the QTC configuration.
+ * @param $check
+ *   Optional; Check the online status of the user to chat.
+ *   Possible values: true or false
+ * @return string
+ *   false or an HTML string containing the JS link.
+ */
+function qtc_chat_link($uid, $name, $realname = false, $link_text = false, $check = true) {
+  global $user;
+
+  if (!user_access('access qtchat', $user) || $user->uid == $uid) {
+    return false;
+  }
+
+  $output = false;
+
+  if (!$link_text) {
+    $link_text = _qtc_chat_invite_title(variable_get('qtc_chat_invite_title', 1));
+  }
+
+  if ($check == true) {
+    $qtc_online_status = qtc_online_status('view', $uid);
+    if ($qtc_online_status == 1 || $qtc_online_status == 4) {
+      $output = '<div class="qtc-chat-link">'. _qtc_chat_link($uid, $name, $link_text, $realname) .'</div>';
+    }
+  }
+  else {
+    $output = '<div class="qtc-chat-link">'. _qtc_chat_link($uid, $name, $link_text, $realname) .'</div>';
+  }
+
+  return $output;
+}
+
+/**
+ * Get available views displays to use as online user counter.
+ *
+ *   This is an function to use for developers.
+ *
+ * @param string $param
+ *   Possible Values:
+ *   all, users, node, comments
+ *   The value users combined internal users and user_relationships.
+ * @return array
+ *   An associative array contains the views to get.
+ *   Example:
+ *   key: friends|page_1
+ *   value: friends: Page (friends)
+ *
+ * @see qtc_admin_form_chat()
+ */
+function qtc_get_views($param = 'all') {
+  $views = array();
+  $views_exist = views_get_all_views();
+
+  switch ($param) {
+    case 'all':
+      foreach ($views_exist as $name => $view) {
+        if ($view->disabled == true) {
+          continue;
+        }
+        foreach ($view->display as $display => $value) {
+          $views[$name .'|'. $display] = $view->name .': '.$value->display_title;
+        }
+      }
+      break;
+
+    // The case we are interested mainly.
+    // Filters compatible "Flag Friend" and "User Relationships" views displays.
+    case 'users':
+      foreach ($views_exist as $name => $view) {
+        if (($view->base_table != 'users' || $view->disabled == true) && ($view->base_table != 'user_relationships' || $view->disabled == true)) {
+          continue;
+        }
+        foreach ($view->display as $display => $value) {
+          $views[$name .'|'. $display] = $view->name .': '.$value->display_title;
+        }
+      }
+      break;
+
+    case 'node':
+      foreach ($views_exist as $name => $view) {
+        if ($view->base_table != 'node' || $view->disabled == true) {
+          continue;
+        }
+        foreach ($view->display as $display => $value) {
+          $views[$name .'|'. $display] = $view->name .': '.$value->display_title;
+        }
+      }
+      break;
+
+    case 'comments':
+      foreach ($views_exist as $name => $view) {
+        if ($view->base_table != 'comments' || $view->disabled == true) {
+          continue;
+        }
+        foreach ($view->display as $display => $value) {
+          $views[$name .'|'. $display] = $view->name .': '.$value->display_title;
+        }
+      }
+      break;
+  }
+
+  return $views;
+}
+
+/**
+ * Help function to create an chat link.
+ *
+ * @param int $uid
+ *   An user ID.
+ * @param string $name
+ *   An user name.
+ * @param string $link_text
+ *   The text used to display the link. For example: Chat with user
+ * @param string $realname
+ *   Optional; The real name or nick name of a user.
+ * @return string
+ *   The rendered link.
+ *
+ * @see qtc_chat_link();
+ */
+function _qtc_chat_link($uid, $name, $link_text, $realname = false) {
+  $output = '';
+
+  // The limitations of Drupals l() function do not make it possible 
+  // to create this javascript link with this function. No change.
+  if ($realname) {
+    $output = '<a class="qtc-chat-invite" href="javascript:void(0)" onclick="javascript:chatWith(\''. $uid .'\', \''. $name .'\', \''. $realname .'\')">'. $link_text .'</a>';
+  }
+  else {
+    $output = '<a class="qtc-chat-invite" href="javascript:void(0)" onclick="javascript:chatWith(\''. $uid .'\', \''. $name .'\', \''. $name .'\')">'. $link_text .'</a>';
+  }
+
+  return $output;
+}
+
+/**
+ * Return a user name as name or real name.
+ *
+ * @param string $name
+ *   The user name.
+ * @param string $realname
+ *   The users realname if exist.
+ * @return string
+ *   The name to use.
+ */
+function qtc_user_name($name, $realname = false) {
+  if ($realname) {
+    $name = $realname;
+  }
+
+  return $name;
+}
+
+/**
+ * Provide the user real name if exist.
+ *
+ *  Alternatively, provided the user name.
+ *
+ * @param object $user
+ *   A user object.
+ * @return array
+ *   The array contains an identifier an the name.
+ *   Identifiers: 2 is real name, 1 is user name
+ *
+ * @see qtc_ajax_send().
+ */
+function qtc_get_realname($user) {
+  $account = module_invoke('realname', 'get_user', $user->uid);
+
+  if ($account->name) {
+    $name['toggle'] = 2;
+    $name['name'] = $account->name;
+  }
+  else {
+    $name['toggle'] = 1;
+    $name['name'] = $user->name;
+  }
+
+  return $name;
+}
+
+/*
+ * Help function for truncating text strings.
+ *
+ * @param $string
+ *   The string to truncate.
+ * @param $length
+ *   The lenght for truncate.
+ * @param $replacement
+ *   The replacement at the end of the string.
+ * @return
+ *   The truncated string.
+ */
+function qtc_truncate($string, $length = 22, $replacement = '...') {
+  if (!is_string($string)) {
+    return '';
+  }
+
+  $string = check_plain($string);
+
+  if (drupal_strlen($string) > $length) {
+    $output = substr($string, 0, $length) . $replacement;
+  }
+  else {
+    $output = $string;
+  }
+
+  return $output;
+}
+
+/**
+ * Get the list of supported friend modules.
+ */
+function qtc_friend_modules() {
+  return array(
+    'flag_friend' => t('Flag Friend'),
+    'user_relationships_api' => t('User Relationships'),
+  );
+}
+
+/**
+ * Build a translatable time string of message sent.
+ *
+ * @param string $format
+ *   The format to build the time string.
+ *   Possible values:
+ *   - short; hour:minute;
+ *   - long; day.month.year - hour:minute;
+ * @param string $string
+ *   A time stamp.
+ * @return string
+ *   The translatable time or datetime string.
+ */
+function _qtc_message_time($format, $string) {
+  switch ($format) {
+    case 'short':
+      $message_time = t('!hour:!minute', array(
+                                           '!hour' => t(format_date($string, 'custom', 'G')),
+                                           '!minute' => t(format_date($string, 'custom', 'i')),
+                                         ));
+      break;
+
+    case 'long':
+      $message_time = t('!day.!month.!year - !hour:!minute', array(
+                                                               '!hour' => t(format_date($string, 'custom', 'G')),
+                                                               '!minute' => t(format_date($string, 'custom', 'i')),
+                                                               '!year' => t(format_date($string, 'custom', 'y')),
+                                                               '!month' => t(format_date($string, 'custom', 'm')),
+                                                               '!day' => t(format_date($string, 'custom', 'd')),
+                                                             ));
+      break;
+  }
+
+  return $message_time;
+}
+
+/**
+ * Help function. Provides online time options.
+ *
+ * @return array
+ *   An associative array contains the time options.
+ *
+ * @see qtc_admin_form_chat()
+ */
+function _qtc_online_time_options() {
+  return array(
+    30    => '30 '. t('sec'),
+    60    => '1 '. t('min'),
+    120   => '2 '. t('min'),
+    180   => '3 '. t('min'),
+    300   => '5 '. t('min'),
+    450   => '7 '. t('min'),
+    600   => '10 '. t('min'),
+    900   => '15 '. t('min'),
+    1050  => '17 '. t('min'),
+    1200  => '20 '. t('min'),
+    1800  => '30 '. t('min'),
+    2700  => '45 '. t('min'),
+    3600  => '1 '. t('hour'),
+    5400  => '1 '. t('hour') .' 30 '. t('min'),
+    7200  => '2 '. t('hours'),
+    10800 => '3 '. t('hours'),
+    21600 => '6 '. t('hours'),
+    43200 => '12 '. t('hours'),
+    86400 => '1 '. t('day'),
+  );
+}
+
+/**
+ * Help function. Provides the chat link text with given key.
+ *
+ * @param int $key
+ *   Possible values:
+ *   1 Chat with user
+ *   2 Invite to chat
+ *   3 Chat
+ * @return string
+ *   The chat link text.
+ *
+ * @see qtc_chat_link(), qtc_users_block(), qtc_chat_bar_friendlist(), qtc_chat_bar_friendlist()
+ */
+function _qtc_chat_invite_title($key) {
+  $titles = array(
+              1 => t('Chat with user'),
+              2 => t('Invite to chat'),
+              3 => t('Chat'),
+            );
+  
+  return $titles[$key];
+}
+
+/**
+ * @todo
+ *
+ * APE push engine. http://www.ape-project.org
+ */
+

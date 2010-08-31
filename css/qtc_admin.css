@@ -1,0 +1,42 @@
+/* $Id: qtc_admin.css,v 1.1.2.4 2010/08/22 18:41:20 quiptime Exp $ */
+
+/**
+ * @file qtc_admin.css
+ */
+
+div#edit-qtc-busy-status-allow-wrapper label {
+  background: transparent url(../img/qtc_sprite.png) no-repeat scroll -5px -129px;
+  padding-left: 18px;
+}
+div#edit-qtc-invisible-status-allow-wrapper label {
+  background: transparent url(../img/qtc_sprite.png) no-repeat scroll -5px -152px;
+  padding-left: 18px;
+}
+#color-use {
+  clear: left;
+  float: left;
+  margin-right: 2em;
+}
+#edit-qtc-color-wrapper {
+  font-size: 12px;
+  padding-bottom: 1em;
+}
+#more-colors .colors-more {
+  padding: 0.5em;
+}
+span#qtc-reset-color {
+  background-color: #F77B05;
+  color: #FFF;
+  font-size: 12px;
+  padding: 4px;
+}
+span#qtc-facebook-color {
+  background-color: #6D84B4;
+  color: #FFF;
+  font-size: 12px;
+  padding: 4px;
+}
+form#qtc-admin-form-chat h3 {
+  font-size: 16px;
+  margin-top: 0.5em;
+}

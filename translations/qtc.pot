@@ -1,0 +1,908 @@
+# $Id: qtc.pot,v 1.1.2.4 2010/08/22 18:41:20 quiptime Exp $
+#
+# LANGUAGE translation of QTChat
+# Copyright Quiptime <quiptime@gmail.com>
+# Generated from files:
+#  qtc.admin.inc: n/a
+#  inc/qtc.theme.inc: n/a
+#  qtc.author-pane.inc: n/a
+#  js/qtc.js: n/a
+#  js/qtc.min.js: n/a
+#  qtc.module: n/a
+#  qtc.info: n/a
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"POT-Creation-Date: 2010-08-22 20:20+0200\n"
+"PO-Revision-Date: YYYY-mm-DD HH:MM+ZZZZ\n"
+"Last-Translator: NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <EMAIL@ADDRESS>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n!=1);\n"
+
+#: qtc.admin.inc:29
+msgid "Messages"
+msgstr ""
+
+#: qtc.admin.inc:33
+msgid "Age for chat messages to be deleted. The functionality to delete old chat messages requires a cron task."
+msgstr ""
+
+#: qtc.admin.inc:34
+msgid "Important"
+msgstr ""
+
+#: qtc.admin.inc:35
+msgid "Make sure that is not shorter %messages than %history."
+msgstr ""
+
+#: qtc.admin.inc:35;38
+msgid "Delete messages"
+msgstr ""
+
+#: qtc.admin.inc:35;64
+msgid "Delete histories"
+msgstr ""
+
+#: qtc.admin.inc:46
+msgid "The database contains <strong>!count</strong> chat messages."
+msgstr ""
+
+#: qtc.admin.inc:50
+msgid "Cron"
+msgstr ""
+
+#: qtc.admin.inc:55
+msgid "You can <a href=\"@cron\">run cron manually</a>."
+msgstr ""
+
+#: qtc.admin.inc:65
+msgid "Age for chat histories to be deleted. If a chat window is closed then deleted the chat histories according to this timing - this refers to the user who has chatted. It is a good idea, this time choose short as one believes that a user needs the history."
+msgstr ""
+
+#: qtc.admin.inc:72
+msgid "Module settings"
+msgstr ""
+
+#: qtc.admin.inc:79
+msgid "jQuery file variant"
+msgstr ""
+
+#: qtc.admin.inc:80
+msgid "The QTChat jQuery main file can be used in two variants. Recommended is the minified version."
+msgstr ""
+
+#: qtc.admin.inc:86
+msgid "Main file compression level"
+msgstr ""
+
+#: qtc.admin.inc:87
+msgid "Choose QTChat jQuery main file compression level."
+msgstr ""
+
+#: qtc.admin.inc:89
+msgid "Production (Minified)"
+msgstr ""
+
+#: qtc.admin.inc:90
+msgid "Development (Uncompressed code)"
+msgstr ""
+
+#: qtc.admin.inc:97;104
+msgid "Login fix"
+msgstr ""
+
+#: qtc.admin.inc:106
+msgid "This entry is a path. Without beginning and ending slash. Leave this entry blank if not needed."
+msgstr ""
+
+#: qtc.admin.inc:128
+msgid "Using the functionality to change the online status."
+msgstr ""
+
+#: qtc.admin.inc:129
+msgid "This functionality is only available if the option <em>Yes, accept users status</em> is chosen and if enabled <em>Allow invisible status</em> and/or <em>Allow busy status</em>."
+msgstr ""
+
+#: qtc.admin.inc:132
+msgid "Status settings"
+msgstr ""
+
+#: qtc.admin.inc:141
+msgid "Status variant"
+msgstr ""
+
+#: qtc.admin.inc:146
+msgid "If <em>Yes, accept users status</em> selected: Users may change their online status. Status changes are visualized for other users depending on the heartbeat settings."
+msgstr ""
+
+#: qtc.admin.inc:147
+msgid "If <em>No, use Drupals default</em> selected: Users may not change their online status. Status changes are visualized for other users depending on the <em>Online status time</em> setting."
+msgstr ""
+
+#: qtc.admin.inc:150;162
+msgid "Online status variant"
+msgstr ""
+
+#: qtc.admin.inc:152
+msgid "Yes, accept users status"
+msgstr ""
+
+#: qtc.admin.inc:152
+msgid "No, use Drupals default"
+msgstr ""
+
+#: qtc.admin.inc:160
+msgid "Choose the time after which a user status is offline."
+msgstr ""
+
+#: qtc.admin.inc:161
+msgid "Note: The corresponding time of the %user-stats module is 15 minutes."
+msgstr ""
+
+#: qtc.admin.inc:161
+msgid "User Stats"
+msgstr ""
+
+#: qtc.admin.inc:162
+msgid "If selected the option <em>Accept users status</em> from the setting %status-variant, then has the setting of the user priority."
+msgstr ""
+
+#: qtc.admin.inc:165
+msgid "Online status time"
+msgstr ""
+
+#: qtc.admin.inc:171
+msgid "If disabled no, or only one of the two options:"
+msgstr ""
+
+#: qtc.admin.inc:172
+msgid "Users can set your online status with the activated options."
+msgstr ""
+
+#: qtc.admin.inc:173
+msgid "Both options are disabled:"
+msgstr ""
+
+#: qtc.admin.inc:174
+msgid "Users can not using the function to set their status to invisible or busy."
+msgstr ""
+
+#: qtc.admin.inc:177
+msgid "Invisible and busy"
+msgstr ""
+
+#: qtc.admin.inc:185
+msgid "Allow invisible status"
+msgstr ""
+
+#: qtc.admin.inc:186
+msgid "If enabled users can choose the status %invisible."
+msgstr ""
+
+#: qtc.admin.inc:186 inc/qtc.theme.inc:541
+msgid "Invisible"
+msgstr ""
+
+#: qtc.admin.inc:187;200;219
+msgid "Yes"
+msgstr ""
+
+#: qtc.admin.inc:187;200;219
+msgid "No"
+msgstr ""
+
+#: qtc.admin.inc:198
+msgid "Allow busy status"
+msgstr ""
+
+#: qtc.admin.inc:199
+msgid "If enabled users can choose the status %busy."
+msgstr ""
+
+#: qtc.admin.inc:199 qtc.author-pane.inc:62 inc/qtc.theme.inc:544 js/qtc.js:0;0 js/qtc.min.js:0;0
+msgid "Busy"
+msgstr ""
+
+#: qtc.admin.inc:211
+msgid "Chat bar settings"
+msgstr ""
+
+#: qtc.admin.inc:217
+msgid "Chat bar"
+msgstr ""
+
+#: qtc.admin.inc:218
+msgid "Choose whether to use the chat bar."
+msgstr ""
+
+#: qtc.admin.inc:228
+msgid "User specific visibility settings"
+msgstr ""
+
+#: qtc.admin.inc:234
+msgid "Custom visibility settings"
+msgstr ""
+
+#: qtc.admin.inc:236
+msgid "Users cannot control whether or not they see the Chat bar."
+msgstr ""
+
+#: qtc.admin.inc:237
+msgid "Show the Chat bar by default, but let individual users hide it."
+msgstr ""
+
+#: qtc.admin.inc:238
+msgid "Hide the Chat bar by default but let individual users show it."
+msgstr ""
+
+#: qtc.admin.inc:240
+msgid "Allow individual users to customize the visibility of the Chat bar in their account settings."
+msgstr ""
+
+#: qtc.admin.inc:246
+msgid "Page specific visibility settings"
+msgstr ""
+
+#: qtc.admin.inc:258
+msgid "Show on every page except the listed pages."
+msgstr ""
+
+#: qtc.admin.inc:259
+msgid "Show on only the listed pages."
+msgstr ""
+
+#: qtc.admin.inc:261
+msgid "Enter one page per line as Drupal paths. The '*' character is a wildcard. Example paths are %blog for the blog page and %blog-wildcard for every personal blog. %front is the front page."
+msgstr ""
+
+#: qtc.admin.inc:263
+msgid "Show if the following PHP code returns <code>true</code> (PHP-mode, experts only)."
+msgstr ""
+
+#: qtc.admin.inc:264
+msgid "If the PHP-mode is chosen, enter PHP code between %php. Note that executing incorrect PHP-code can break your Drupal site."
+msgstr ""
+
+#: qtc.admin.inc:268
+msgid "Show Chat bar on specific pages"
+msgstr ""
+
+#: qtc.admin.inc:274
+msgid "Pages"
+msgstr ""
+
+#: qtc.admin.inc:282
+msgid "Maximum number of currently online friends to display in the chat bar."
+msgstr ""
+
+#: qtc.admin.inc:283 qtc.module:1144
+msgid "The block uses a scrollable list if the number of friends is greater than the length of the list."
+msgstr ""
+
+#: qtc.admin.inc:286
+msgid "Friend list length"
+msgstr ""
+
+#: qtc.admin.inc:295
+msgid "Don't use an view"
+msgstr ""
+
+#: qtc.admin.inc:298
+msgid "Choose an view display to get an counter result of online users. The counter should count the online users or the online friends of the current user."
+msgstr ""
+
+#: qtc.admin.inc:299
+msgid "The counter is used mainly in the chat bar."
+msgstr ""
+
+#: qtc.admin.inc:302
+msgid "User counter"
+msgstr ""
+
+#: qtc.admin.inc:316;326;330
+msgid "Friend modules"
+msgstr ""
+
+#: qtc.admin.inc:323
+msgid "Do not use friend modules"
+msgstr ""
+
+#: qtc.admin.inc:327
+msgid "Choose a friend module."
+msgstr ""
+
+#: qtc.admin.inc:330
+msgid "Changes made in the option %modules must be saved with %submit it can be configured the related options."
+msgstr ""
+
+#: qtc.admin.inc:330
+msgid "Save configuration"
+msgstr ""
+
+#: qtc.admin.inc:340
+msgid "Supported friend modules"
+msgstr ""
+
+#: qtc.admin.inc:363 qtc.module:1565
+msgid "Friend flags"
+msgstr ""
+
+#: qtc.admin.inc:364
+msgid "Choose one or more friend flags. At least one flag is required for this to work the friends online counter and the friends list function."
+msgstr ""
+
+#: qtc.admin.inc:381 qtc.module:1625
+msgid "Relationships"
+msgstr ""
+
+#: qtc.admin.inc:382
+msgid "Choose one ore more user relationship types. At least one relationship is required for this to work the friends online counter and the friends list function."
+msgstr ""
+
+#: qtc.admin.inc:395
+msgid "Other settings"
+msgstr ""
+
+#: qtc.admin.inc:401
+msgid "Invite title"
+msgstr ""
+
+#: qtc.admin.inc:402
+msgid "Select the text that is used to chat with a user. Example for use: Mouse over text of user links."
+msgstr ""
+
+#: qtc.admin.inc:404 qtc.module:2364 js/qtc.js:0 js/qtc.min.js:0
+msgid "Chat with user"
+msgstr ""
+
+#: qtc.admin.inc:405 qtc.module:2365 js/qtc.js:0 js/qtc.min.js:0
+msgid "Invite to chat"
+msgstr ""
+
+#: qtc.admin.inc:406 qtc.module:2366;223 qtc.info:0 inc/qtc.theme.inc:245 js/qtc.js:0;0;0 js/qtc.min.js:0;0;0
+msgid "Chat"
+msgstr ""
+
+#: qtc.admin.inc:410
+msgid "Choose the online status when a user login again."
+msgstr ""
+
+#: qtc.admin.inc:411
+msgid "Last status: The status with which a user has logged out."
+msgstr ""
+
+#: qtc.admin.inc:414
+msgid "Login again status"
+msgstr ""
+
+#: qtc.admin.inc:417
+msgid "Status available"
+msgstr ""
+
+#: qtc.admin.inc:418
+msgid "Last status"
+msgstr ""
+
+#: qtc.admin.inc:425
+msgid "Truncate names"
+msgstr ""
+
+#: qtc.admin.inc:429
+msgid "The names of the chat messages and friends list in the chat bar."
+msgstr ""
+
+#: qtc.admin.inc:430;439
+msgid "Please choose the character length for the name if desired."
+msgstr ""
+
+#: qtc.admin.inc:433
+msgid "Message and chat bar names"
+msgstr ""
+
+#: qtc.admin.inc:438;447
+msgid "The names in the title of a chat window."
+msgstr ""
+
+#: qtc.admin.inc:442
+msgid "Chat window names"
+msgstr ""
+
+#: qtc.admin.inc:448
+msgid "Clickable names refer to the user's account."
+msgstr ""
+
+#: qtc.admin.inc:451
+msgid "Clickable chat window names"
+msgstr ""
+
+#: qtc.admin.inc:453;460
+msgid "Not clickable"
+msgstr ""
+
+#: qtc.admin.inc:453;460
+msgid "Clickable"
+msgstr ""
+
+#: qtc.admin.inc:458
+msgid "Clickable chat window avatars"
+msgstr ""
+
+#: qtc.admin.inc:459
+msgid "Clickable avatars refer to the user's account."
+msgstr ""
+
+#: qtc.admin.inc:466
+msgid "QTChat color"
+msgstr ""
+
+#: qtc.admin.inc:470
+msgid "QTChat default color"
+msgstr ""
+
+#: qtc.admin.inc:471
+msgid "The Facebook color"
+msgstr ""
+
+#: qtc.admin.inc:474
+msgid "Color"
+msgstr ""
+
+#: qtc.admin.inc:475
+msgid "Enter a new color value or use the interface to change the color value."
+msgstr ""
+
+#: qtc.admin.inc:498
+msgid "The heartbeat time is the frequency with which the clients (browsers) connects to the server."
+msgstr ""
+
+#: qtc.admin.inc:499
+msgid "Be very careful with this settings, as it can quickly eat your server resources."
+msgstr ""
+
+#: qtc.admin.inc:502 qtc.module:233
+msgid "Heartbeat"
+msgstr ""
+
+#: qtc.admin.inc:510
+msgid "Time min"
+msgstr ""
+
+#: qtc.admin.inc:511
+msgid "Minimum heartbeat time."
+msgstr ""
+
+#: qtc.admin.inc:512;512;512;512;512;519;519;519;519
+msgid "seconds"
+msgstr ""
+
+#: qtc.admin.inc:517
+msgid "Time max"
+msgstr ""
+
+#: qtc.admin.inc:518
+msgid "Maximum heartbeat time."
+msgstr ""
+
+#: qtc.admin.inc:522
+msgid "The number of client connects, after which time shall be extended for the first time."
+msgstr ""
+
+#: qtc.admin.inc:523;532
+msgid "After this number is extended the heartbeat time with the factor"
+msgstr ""
+
+#: qtc.admin.inc:526
+msgid "Time count one"
+msgstr ""
+
+#: qtc.admin.inc:531
+msgid "The number of client connects to increase the time count one, as result after which time shall be extended for the second time."
+msgstr ""
+
+#: qtc.admin.inc:535
+msgid "Time count second"
+msgstr ""
+
+#: qtc.admin.inc:543
+msgid "User data"
+msgstr ""
+
+#: qtc.admin.inc:544
+msgid "Heartbeat time to get user data. They are user and friends lists, user and friends counter"
+msgstr ""
+
+#: qtc.admin.inc:550
+msgid "Data time"
+msgstr ""
+
+#: qtc.admin.inc:551
+msgid "By this time, updates the user data."
+msgstr ""
+
+#: qtc.admin.inc:552
+msgid "minute"
+msgstr ""
+
+#: qtc.admin.inc:552;552;552;552
+msgid "minutes"
+msgstr ""
+
+#: qtc.admin.inc:637 qtc.module:2339;2340
+msgid "hour"
+msgstr ""
+
+#: qtc.admin.inc:638;639;640;641;642;643 qtc.module:2341;2342;2343;2344
+msgid "hours"
+msgstr ""
+
+#: qtc.admin.inc:644;645;646;647;648;649
+msgid "days"
+msgstr ""
+
+#: qtc.author-pane.inc:18 qtc.module:1888
+msgid "View user profile."
+msgstr ""
+
+#: qtc.author-pane.inc:49;58 js/qtc.js:0;0;0;0 js/qtc.min.js:0;0;0;0
+msgid "Offline"
+msgstr ""
+
+#: qtc.author-pane.inc:53 inc/qtc.theme.inc:538
+msgid "Available"
+msgstr ""
+
+#: qtc.module:18
+msgid "<p>QTChat</p>\n      <h3>Usage</h3>\n      <p>QTChat can not be used for anonymous user. Only logged in users with the permission <em>access qtchat</em> can chat with QTChat.</p>"
+msgstr ""
+
+#: qtc.module:258
+msgid "CTChat"
+msgstr ""
+
+#: qtc.module:265
+msgid "Do not use this block if you use a friend module. Used a friend module they can use the block \"QTChat friends\"."
+msgstr ""
+
+#: qtc.module:416
+msgid "Show Chat bar"
+msgstr ""
+
+#: qtc.module:653
+msgid "View !chat-user's profile"
+msgstr ""
+
+#: qtc.module:719
+msgid "Sent at !time"
+msgstr ""
+
+#: qtc.module:914 js/qtc.js:0;0 js/qtc.min.js:0;0
+msgid "Chat history"
+msgstr ""
+
+#: qtc.module:923 js/qtc.js:0;0;0 js/qtc.min.js:0;0;0
+msgid "Me"
+msgstr ""
+
+#: qtc.module:938
+msgid "No history data available."
+msgstr ""
+
+#: qtc.module:1064;196
+msgid "My chat status"
+msgstr ""
+
+#: qtc.module:1077
+msgid "Choose your chat status."
+msgstr ""
+
+#: qtc.module:1087
+msgid "Set status"
+msgstr ""
+
+#: qtc.module:1112;1296 qtc.info:0
+msgid "QTChat"
+msgstr ""
+
+#: qtc.module:1116;1326
+msgid "QTChat friends"
+msgstr ""
+
+#: qtc.module:1119
+msgid "QTChat users online status"
+msgstr ""
+
+#: qtc.module:1129;1147
+msgid "User list length"
+msgstr ""
+
+#: qtc.module:1130;1143
+msgid "Maximum number of currently online users to display."
+msgstr ""
+
+#: qtc.module:1269;1272
+msgid "Currently %members online."
+msgstr ""
+
+#: qtc.module:1333
+msgid "QTChat online status"
+msgstr ""
+
+#: qtc.module:1564
+msgid "Chat settings: Friend modules: No %flags enabled! Administer the !module to."
+msgstr ""
+
+#: qtc.module:1565;1625
+msgid "QTC module"
+msgstr ""
+
+#: qtc.module:1624
+msgid "Chat settings: Friend modules: No %relationships enabled! Administer the !module."
+msgstr ""
+
+#: qtc.module:1839
+msgid "I'm available"
+msgstr ""
+
+#: qtc.module:1845;1849
+msgid "I'm invisible"
+msgstr ""
+
+#: qtc.module:1846;1852
+msgid "I'm busy"
+msgstr ""
+
+#: qtc.module:1879
+msgid "@user's profile"
+msgstr ""
+
+#: qtc.module:1879
+msgid "Anonymous"
+msgstr ""
+
+#: qtc.module:2276
+msgid "Flag Friend"
+msgstr ""
+
+#: qtc.module:2277
+msgid "User Relationships"
+msgstr ""
+
+#: qtc.module:2297
+msgid "!hour:!minute"
+msgstr ""
+
+#: qtc.module:2304
+msgid "!day.!month.!year - !hour:!minute"
+msgstr ""
+
+#: qtc.module:2327
+msgid "sec"
+msgstr ""
+
+#: qtc.module:2328;2329;2330;2331;2332;2333;2334;2335;2336;2337;2338;2340
+msgid "min"
+msgstr ""
+
+#: qtc.module:2345
+msgid "day"
+msgstr ""
+
+#: qtc.module:1269;1272
+msgid "1 user"
+msgid_plural "@count users"
+msgstr[0] ""
+msgstr[1] ""
+
+#: qtc.module:100
+msgid "access qtchat"
+msgstr ""
+
+#: qtc.module:100
+msgid "administer qtchat"
+msgstr ""
+
+#: qtc.module:117
+msgid "Start user chat session"
+msgstr ""
+
+#: qtc.module:124
+msgid "Get user chat additional data"
+msgstr ""
+
+#: qtc.module:131
+msgid "Periodicly check if have new message"
+msgstr ""
+
+#: qtc.module:138
+msgid "Periodicly check user data"
+msgstr ""
+
+#: qtc.module:145
+msgid "Submit new chat message"
+msgstr ""
+
+#: qtc.module:152
+msgid "Close chat window"
+msgstr ""
+
+#: qtc.module:159
+msgid "Set your online status"
+msgstr ""
+
+#: qtc.module:168
+msgid "Show chat history"
+msgstr ""
+
+#: qtc.module:175
+msgid "Empty chat history"
+msgstr ""
+
+#: qtc.module:185
+msgid "Chat status"
+msgstr ""
+
+#: qtc.module:205;206;214
+msgid "QTChat settings"
+msgstr ""
+
+#: qtc.module:213
+msgid "Global"
+msgstr ""
+
+#: qtc.module:224
+msgid "QTChat chat settings"
+msgstr ""
+
+#: qtc.module:234
+msgid "QTChat heartbeat settings"
+msgstr ""
+
+#: qtc.info:0
+msgid "User 2 user facebook style chat.<br />Module development by <a href=\"http://www.quiptime.com\">Quiptime Group</a>"
+msgstr ""
+
+#: inc/qtc.theme.inc:229;830
+msgid "Loading data ..."
+msgstr ""
+
+#: inc/qtc.theme.inc:316
+msgid "You are available"
+msgstr ""
+
+#: inc/qtc.theme.inc:317
+msgid "You are invisible"
+msgstr ""
+
+#: inc/qtc.theme.inc:318
+msgid "You are busy"
+msgstr ""
+
+#: inc/qtc.theme.inc:354
+msgid "There are no active users."
+msgstr ""
+
+#: inc/qtc.theme.inc:406 js/qtc.js:0 js/qtc.min.js:0
+msgid "There are no online friends."
+msgstr ""
+
+#: inc/qtc.theme.inc:537
+msgid "Make available status"
+msgstr ""
+
+#: inc/qtc.theme.inc:537
+msgid "Be available"
+msgstr ""
+
+#: inc/qtc.theme.inc:540
+msgid "Make invisible status"
+msgstr ""
+
+#: inc/qtc.theme.inc:540
+msgid "Be invisible"
+msgstr ""
+
+#: inc/qtc.theme.inc:543
+msgid "Make busy status"
+msgstr ""
+
+#: inc/qtc.theme.inc:543
+msgid "Be busy"
+msgstr ""
+
+#: inc/qtc.theme.inc:651 js/qtc.js:0 js/qtc.min.js:0
+msgid "No online friends."
+msgstr ""
+
+#: inc/qtc.theme.inc:744
+msgid "Friend lists"
+msgstr ""
+
+#: inc/qtc.theme.inc:755
+msgid "Options"
+msgstr ""
+
+#: inc/qtc.theme.inc:808
+msgid "Friends window leave open"
+msgstr ""
+
+#: js/qtc.js:0;0 js/qtc.min.js:0;0
+msgid "Online"
+msgstr ""
+
+#: js/qtc.js:0 js/qtc.min.js:0
+msgid "Hide/unhide"
+msgstr ""
+
+#: js/qtc.js:0 js/qtc.min.js:0
+msgid "Close"
+msgstr ""
+
+#: js/qtc.js:0;0 js/qtc.min.js:0;0
+msgid "User is offline."
+msgstr ""
+
+#: js/qtc.js:0;0 js/qtc.min.js:0;0
+msgid "Empty history"
+msgstr ""
+
+#: js/qtc.js:0 js/qtc.min.js:0
+msgid "says ..."
+msgstr ""
+
+#: js/qtc.js:0 js/qtc.min.js:0
+msgid "User busy. Please respect his status."
+msgstr ""
+
+#: js/qtc.js:0 js/qtc.min.js:0
+msgid "January"
+msgstr ""
+
+#: js/qtc.js:0 js/qtc.min.js:0
+msgid "February"
+msgstr ""
+
+#: js/qtc.js:0 js/qtc.min.js:0
+msgid "March"
+msgstr ""
+
+#: js/qtc.js:0 js/qtc.min.js:0
+msgid "April"
+msgstr ""
+
+#: js/qtc.js:0 js/qtc.min.js:0
+msgid "May"
+msgstr ""
+
+#: js/qtc.js:0 js/qtc.min.js:0
+msgid "June"
+msgstr ""
+
+#: js/qtc.js:0 js/qtc.min.js:0
+msgid "July"
+msgstr ""
+
+#: js/qtc.js:0 js/qtc.min.js:0
+msgid "August"
+msgstr ""
+
+#: js/qtc.js:0 js/qtc.min.js:0
+msgid "September"
+msgstr ""
+
+#: js/qtc.js:0 js/qtc.min.js:0
+msgid "October"
+msgstr ""
+
+#: js/qtc.js:0 js/qtc.min.js:0
+msgid "November"
+msgstr ""
+
+#: js/qtc.js:0 js/qtc.min.js:0
+msgid "December"
+msgstr ""
+

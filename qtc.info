@@ -1,0 +1,13 @@
+; $Id: qtc.info,v 1.1.2.4 2010/08/15 16:57:26 quiptime Exp $
+name = QTChat
+package = Chat
+description = User 2 user facebook style chat.<br />Module development by <a href="http://www.quiptime.com">Quiptime Group</a>
+
+core = 6.x
+
+; Information added by drupal.org packaging script on 2010-08-28
+version = "6.x-1.x-dev"
+core = "6.x"
+project = "qtc"
+datestamp = "1282997775"
+

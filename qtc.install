@@ -1,0 +1,197 @@
+<?php
+// $Id: qtc.install,v 1.1.2.3 2010/08/02 23:11:13 quiptime Exp $
+
+/**
+ * @file
+ * Install, update and uninstall functions for the QTChat module.
+ */
+
+/**
+ * Implementation of hook_install().
+ * 
+ */
+function qtc_install() {
+  drupal_install_schema('qtc');
+  db_query('ALTER TABLE {qtc_stats} ADD PRIMARY KEY (uid)');
+  db_query('ALTER TABLE {qtc_stats} ADD INDEX (status)');
+}
+
+/**
+ * Implementation of hook_uninstall().
+ */
+function qtc_uninstall() {
+  drupal_uninstall_schema('qtc');
+  db_query("DELETE FROM {variable} WHERE name LIKE 'qtc\_%'");
+}
+
+/**
+ * Implementation of hook_schema().
+ */
+function qtc_schema() {
+  $schema['qtc'] = array(
+  'description' => 'QTChat message table.',
+  'fields' => array(
+    'zid' => array(
+      'type' => 'serial',
+      'unsigned' => TRUE,
+      'not null' => TRUE,
+      'description' => 'Message ID.',
+    ),
+    'f_id' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'unsigned' => TRUE,
+      'description' => 'From chat user uid.',
+    ),
+    'chat_frm' => array(
+      'type' => 'varchar',
+      'length' => 128,
+      'not null' => TRUE,
+      'default' => '',
+      'description' => 'From chat user.',
+    ),
+    'frm_name' => array(
+      'type' => 'varchar',
+      'length' => 128,
+      'not null' => TRUE,
+      'default' => '',
+      'description' => 'From chat name.',
+    ),
+    't_id' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'unsigned' => TRUE,
+      'description' => 'To chat user uid.',
+    ),
+    'chat_to' => array(
+      'type' => 'varchar',
+      'length' => 128,
+      'not null' => TRUE,
+      'default' => '',
+      'description' => 'To chat user.',
+    ),
+    'to_name' => array(
+      'type' => 'varchar',
+      'length' => 128,
+      'not null' => TRUE,
+      'default' => '',
+      'description' => 'To chat name.',
+    ),
+    'chat_sent' => array(
+      'type' => 'datetime',
+      'not null' => TRUE,
+      'description' => 'Date chat message been sent.',
+    ),
+    'chat_message' => array(
+      'type' => 'varchar',
+      'length' => 128,
+      'not null' => TRUE,
+      'description' => 'Message been sent.',
+    ),
+    'chat_recd' => array(
+      'type' => 'int',
+      'size' => 'small',
+      'not null' => TRUE,
+      'unsigned' => TRUE,
+      'default' => 0,
+      'description' => 'Record status.',
+    )
+    ),
+    'unique keys' => array(
+      'zid' => array('zid')
+     ),
+    'primary key' => array('zid'),
+    'indexes' => array(
+      't_id' => array('t_id'),
+      'chat_recd' => array('chat_recd'),
+    ));
+
+  $schema['qtc_stats'] = array(
+  'description' => 'QTChat status table.',
+  'fields' => array(
+    'uid' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'unsigned' => TRUE,
+      'description' => 'User ID.',
+    ),
+    'status' => array(
+      'type' => 'int',
+      'size' => 'small',
+      'not null' => TRUE,
+      'unsigned' => TRUE,
+      'default' => 1,
+      'description' => '1 online, 3 invisible, 4 busy',
+    ),
+    'logout' => array(
+      'type' => 'int',
+      'size' => 'small',
+      'not null' => TRUE,
+      'unsigned' => TRUE,
+      'description' => 'Logout status; 1 logged out, 0 logged in.',
+    ),
+  ));
+
+  return $schema;
+}
+
+/**
+ * Implementation of hook_update_N().
+ */
+function qtc_update_1() {
+  $schema['qtc_stats'] = array(
+  'description' => 'QTChat status table.',
+  'fields' => array(
+    'uid' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'unsigned' => TRUE,
+      'description' => 'User ID.',
+    ),
+    'online' => array(
+      'type' => 'int',
+      'size' => 'small',
+      'not null' => TRUE,
+      'unsigned' => TRUE,
+      'description' => 'Online status; 0 offline, 1 online.',
+    ),
+    'logout' => array(
+      'type' => 'int',
+      'size' => 'small',
+      'not null' => TRUE,
+      'unsigned' => TRUE,
+      'description' => 'Logout status; 1 logged out, 0 logged in.',
+    ),
+  ));
+
+  $ret = array();
+
+  if (!db_table_exists('qtc_stats')) {
+    db_create_table($ret, 'qtc_stats', $schema['qtc_stats']);
+    
+    db_add_primary_key($ret, 'qtc_stats', array('uid'));
+    db_add_index($ret, 'qtc_stats', 'online', array('online'));
+  }
+
+  return $ret;
+}
+
+/**
+ * Implementation of hook_update_N().
+ */
+function qtc_update_2() {
+  $ret = array();
+
+  $new_field = array(
+    'type' => 'int',
+    'size' => 'small',
+    'not null' => TRUE,
+    'unsigned' => TRUE,
+    'default' => 1,
+    'description' => '1 online, 3 invisible, 4 busy',
+  );
+  
+  db_change_field($ret, 'qtc_stats', 'online', 'status', $new_field);
+
+  return $ret;
+}
