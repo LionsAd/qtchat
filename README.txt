@@ -49,3 +49,8 @@ Quiptime Group
 Siegfried Neumann
 www.quiptime.com
 quiptime [ at ] gmail [ dot ] com
+
+Fork
+--------------------------------------------------------------------------------
+
+for www.info-notes.com
