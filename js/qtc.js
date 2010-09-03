@@ -202,7 +202,7 @@ function _createChatBox(data,t_id,t_un,t_name,m,t,minimizeChatBox) {
   .appendTo($("body"));
 
  if (m && typeof(m) != 'object') {
-  $("div#chatbox_"+t_id+" .chatboxcontent").append('<div class="chatboxmessage"><span class="chatboxmessagefrom">'+truncateString('name',t_name)+':&nbsp;&nbsp;</span><span class="chatboxmessagecontent">'+m+'</span>&nbsp;<span class="chatboxmessagetime">'+t+'</span></div>');
+  $("div#chatbox_"+t_id+" .chatboxcontent").append('<div class="chatboxmessage"><span class="chatboxmessageheader"><span class="chatboxmessagefrom">'+truncateString('name',t_name)+':&nbsp;&nbsp;</span>&nbsp;<span class="chatboxmessagetime">'+t+'</span></span<<span class="chatboxmessagecontent">'+m+'</span></div>');
  }
  else if (m && typeof(m) == 'object') {
   for (i in m) {
@@ -215,7 +215,7 @@ function _createChatBox(data,t_id,t_un,t_name,m,t,minimizeChatBox) {
     }
    }
    m_time = messageDate('short', m[i].t);
-   $("div#chatbox_"+t_id+" .chatboxcontent").append('<div class="chatboxmessage"><span class="chatboxmessagefrom" style="'+lineBreak+'">'+truncateString('name',m[i].fn)+':&nbsp;&nbsp;</span><span class="chatboxmessagecontent">'+m[i].m+'</span>&nbsp;<span class="chatboxmessagetime">'+m_time+'</span></div>');
+   $("div#chatbox_"+t_id+" .chatboxcontent").append('<div class="chatboxmessage"><span class="chatboxmessageheader"><span class="chatboxmessagefrom" style="'+lineBreak+'">'+truncateString('name',m[i].fn)+':&nbsp;&nbsp;</span>&nbsp;<span class="chatboxmessagetime">'+m_time+'</span></span><span class="chatboxmessagecontent">'+m[i].m+'</span></div>');
   }
  }
 
@@ -400,7 +400,7 @@ function chatHeartbeat() {
      else {
       newMessages[item.fn] = true;
       newMessagesWin[item.fn] = true;
-      $("div#chatbox_"+t_id+" .chatboxcontent").append('<div class="chatboxmessage"><span class="chatboxmessagefrom">'+item.fn+':&nbsp;&nbsp;</span><span class="chatboxmessagecontent">'+item.m+'</span>&nbsp;<span class="chatboxmessagetime">'+item.t+'</span></div>');
+      $("div#chatbox_"+t_id+" .chatboxcontent").append('<div class="chatboxmessage"><span class="chatboxmessageheader"><span class="chatboxmessagefrom">'+item.fn+':&nbsp;&nbsp;</span>&nbsp;<span class="chatboxmessagetime">'+item.t+'</span></span><span class="chatboxmessagecontent">'+item.m+'</span></div>');
 
       if ($('div#chatbox_'+t_id+' .chatboxcontent').css('display') == 'none') {
        $('div#chatbox_'+t_id+' .message-incoming').show();
@@ -745,7 +745,7 @@ function checkChatBoxInputKey(event,chatboxtextarea,t_id,t_un,to_name) {
      warningBusy = '<div class="warning-busy">'+Drupal.t('User busy. Please respect his status.')+'</div>';
     }
     $('div.warning-busy').remove();
-    $("div#chatbox_"+t_id+" .chatboxcontent").append('<div class="chatboxmessage"><span class="chatboxmessagefrom">'+urn+':&nbsp;&nbsp;</span><span class="chatboxmessagecontent">'+message+'</span>&nbsp;<span class="chatboxmessagetime">'+mTime+'</span></div>'+warningBusy);
+    $("div#chatbox_"+t_id+" .chatboxcontent").append('<div class="chatboxmessage"><span class="chatboxmessageheader"><span class="chatboxmessagefrom">'+urn+':&nbsp;&nbsp;</span>&nbsp;<span class="chatboxmessagetime">'+mTime+'</span></span><span class="chatboxmessagecontent">'+message+'</span></div>'+warningBusy);
 
     $("div#chatbox_"+t_id+" .chatboxcontent").scrollTop($("div#chatbox_"+t_id+" .chatboxcontent")[0].scrollHeight);
    });
