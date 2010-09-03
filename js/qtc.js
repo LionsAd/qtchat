@@ -202,7 +202,7 @@ function _createChatBox(data,t_id,t_un,t_name,m,t,minimizeChatBox) {
   .appendTo($("body"));
 
  if (m && typeof(m) != 'object') {
-  $("div#chatbox_"+t_id+" .chatboxcontent").append('<div class="chatboxmessage"><span class="chatboxmessageheader"><span class="chatboxmessagefrom">'+truncateString('name',t_name)+':&nbsp;&nbsp;</span>&nbsp;<span class="chatboxmessagetime">'+t+'</span></span<<span class="chatboxmessagecontent">'+m+'</span></div>');
+  $("div#chatbox_"+t_id+" .chatboxcontent").append('<div class="chatboxmessage"><span class="chatboxmessageheader"><span class="chatboxmessagefrom">'+truncateString('name',t_name)+':&nbsp;&nbsp;</span>&nbsp;<span class="chatboxmessagetime">'+t+'</span></span><span class="chatboxmessagecontent">'+m+'</span></div>');
  }
  else if (m && typeof(m) == 'object') {
   for (i in m) {
