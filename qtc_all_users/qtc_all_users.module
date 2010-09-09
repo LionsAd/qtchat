@@ -1,0 +1,8 @@
+<?
+
+function qtc_all_users_menu()
+{
+	$items = array();
+
+	return $items;
+}

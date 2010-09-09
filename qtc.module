@@ -1119,6 +1119,9 @@ function qtc_block($op = 'list', $delta = 0, $edit = array()) {
       $blocks[1]['info'] = t('QTChat friends');
       $blocks[1]['cache'] = BLOCK_NO_CACHE;
     }
+    if ($friend_module == 'qtc_all_users')
+      $blocks[1]['info'] = t('QTChat users');
+
     $blocks[2]['info'] = t('QTChat users online status');
     $blocks[2]['cache'] = BLOCK_NO_CACHE;
 
@@ -1326,7 +1329,13 @@ function qtc_block($op = 'list', $delta = 0, $edit = array()) {
           $params['block_list_height'] = $params['max_users'];
         }
 
+  	$friend_module = variable_get('qtc_chat_friend_module', 'no');
+
         $block['subject'] = t('QTChat friends');
+
+    	if ($friend_module == 'qtc_all_users')
+	      $block['subject'] = t('QTChat users');
+
         $block['content'] = qtc_friends_block($items, $params, false);
 
         break;
@@ -1622,6 +1631,57 @@ function qtc_chat_user_online_data($users_data = false) {
                   (users.uid <> 0)) AND
                   ((users.uid IN (SELECT f.friend_uid FROM {flag_friend} f WHERE f.uid = %d)) OR (users.uid IN (SELECT f.uid FROM {flag_friend} f WHERE f.friend_uid = %d))
                 )";
+      }
+      $query = db_query($sql, $user->uid, $user->uid);
+
+      $user_data = _qtc_chat_user_online_data($query, $settings);
+      break;
+
+    case 'qtc_all_users':
+      $user_data = array('counter' => 0, 'friends' => array());
+
+      if (!$settings['access_qtchat_rules']) {
+        return $user_data;
+      }
+
+      // Respect users online/invisible/busy setting.
+      if (($settings['invisible_status_allow'] || $settings['busy_status_allow']) && $settings['status_variant']) {
+        // Map status 3 to 0.
+        $sql = "SELECT
+                  users.uid AS uid,
+                  users.name AS name,".
+                  $settings['sql_realname_select'] ."
+                  CASE qtc_stats.status
+                    WHEN 0 THEN 0
+                    WHEN 3 THEN 0
+                    WHEN 4 THEN 4
+                    WHEN 1 THEN (". $settings['time_current'] ." - users.access) < ". $settings['time_diff'] ."
+                    ELSE (". $settings['time_current'] ." - users.access) < ". $settings['time_diff'] ."
+                  END AS online_status,
+                  CASE qtc_stats.logout
+                    WHEN 1 THEN 1
+                    WHEN 0 THEN (". $settings['time_current'] ." - users.access) > ". $settings['time_diff'] ."
+                    ELSE (". $settings['time_current'] ." - users.access) > ". $settings['time_diff'] ."
+                  END AS qtc_stats_logout
+                FROM {users} users 
+                LEFT JOIN {qtc_stats} qtc_stats ON qtc_stats.uid = users.uid ".
+                $settings['sql_realname_select_join'] ."
+                WHERE (
+                  (users.uid <> %d)
+                )";
+
+      }
+      else {
+        $sql = "SELECT
+                  users.uid AS uid,
+                  users.name AS name,".
+                  $settings['sql_realname_select']."
+                  (". $settings['time_current'] ." - users.access) < ". $settings['time_diff'] ." AS online_status
+                FROM {users} users ".
+                $settings['sql_realname_select_join']."
+                WHERE (
+                  ((". $settings['time_current'] ." - users.access) < ". $settings['time_diff'] .") AND
+                  (users.uid <> %d))";
       }
       $query = db_query($sql, $user->uid, $user->uid);
 
@@ -2335,6 +2395,7 @@ function qtc_friend_modules() {
   return array(
     'flag_friend' => t('Flag Friend'),
     'user_relationships_api' => t('User Relationships'),
+    'qtc_all_users' => t('All Users'),
   );
 }
 
