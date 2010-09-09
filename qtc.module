@@ -277,6 +277,9 @@ function qtc_cron() {
   // Delete old chat messages.
   $old =  variable_get('qtc_old_messages', 86400);
 
+  if ($old == -1)
+	return;
+
   $old_time = date('Y-m-d G:i:s', (time() - $old));
   db_query("DELETE FROM {qtc} WHERE chat_sent < '%s'", $old_time);
 }
@@ -855,7 +858,7 @@ function qtc_ajax_close() {
 
       if (count($box_value) >= 1) {
         foreach ($box_value as $key => $value) {
-          if (($time - $value['t']) > $time_diff) {
+          if ($time_diff != -1 && ($time - $value['t']) > $time_diff) {
             unset($_SESSION['chatHistory'][$box][$key]);
           }
         }
