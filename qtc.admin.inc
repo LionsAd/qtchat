@@ -669,5 +669,6 @@ function _qtc_admin_time_options() {
     432000 => '5 '. t('days'),
     518400 => '6 '. t('days'),
     604800 => '7 '. t('days'),
+    -1 => t('Do not delete'),
   );
 }
