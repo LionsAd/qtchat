@@ -1,0 +1,4 @@
+name = QTC All users fake module 
+description = Allows seeing all users as friends 
+core = 6.x
+dependencies[] = qtc
