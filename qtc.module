@@ -1667,7 +1667,7 @@ function qtc_chat_user_online_data($users_data = false) {
                 LEFT JOIN {qtc_stats} qtc_stats ON qtc_stats.uid = users.uid ".
                 $settings['sql_realname_select_join'] ."
                 WHERE (
-                  (users.uid <> %d)
+                  (users.uid <> %d and qtc_stats.logout != 1)
                 )";
 
       }
